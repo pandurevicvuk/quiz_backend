@@ -9,3 +9,34 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        Int     @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String  @unique
+  password  String
+  Sheet     Sheet[]
+}
+
+model Sheet {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  sheetName   String
+  description String?
+  createdAt   DateTime @default(now())
+
+  user User   @relation(fields: [userId], references: [id])
+  Task Task[]
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  sheetId     Int
+  name        String
+  description String?
+  dueDate     DateTime
+  status      Boolean
+
+  sheet Sheet @relation(fields: [sheetId], references: [id])
+}
