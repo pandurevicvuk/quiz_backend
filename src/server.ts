@@ -1,9 +1,10 @@
 import "dotenv/config";
 import cors from "cors";
 import express, { Request, Response } from "express";
-import healthCheck from "./utils/health-check";
 
 import { Logger } from "./utils/logger";
+import healthCheck from "./utils/health-check";
+import errorMiddleware from "./middleware/error-middleware";
 
 const app = express();
 app.use(express.json());
@@ -23,6 +24,7 @@ app.get("/api/healthcheck", async (req: Request, res: Response) => {
   }
 });
 
+app.use(errorMiddleware);
 app.listen(process.env.PORT as String, () => {
   Logger.info(`App is listening on port ${process.env.PORT}`);
 });
