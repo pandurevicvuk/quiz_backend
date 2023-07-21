@@ -1,6 +1,6 @@
-import { object, string } from "yup";
+import { number, object, string } from "yup";
 
-export const userSignUpScheme = object({
+const userSignUpScheme = object({
   body: object({
     firstName: string().required().trim().min(1),
     lastName: string().required().trim().min(1),
@@ -9,10 +9,21 @@ export const userSignUpScheme = object({
   }),
 });
 
-export const userUpdateScheme = object({
+const userUpdateScheme = object({
   body: object({
     firstName: string().required().trim().min(1),
     lastName: string().required().trim().min(1),
     password: string().required().trim().min(8),
   }),
+  parameters: object({
+    id: number().required(),
+  }),
 });
+
+const userIdScheme = object({
+  parameters: object({
+    id: number().required(),
+  }),
+});
+
+export { userSignUpScheme, userUpdateScheme, userIdScheme };
