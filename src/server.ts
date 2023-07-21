@@ -1,28 +1,18 @@
 import "dotenv/config";
 import cors from "cors";
-import express, { Request, Response } from "express";
+import userRouter from "./routes/user-router";
 
-import { Logger } from "./utils/logger";
-import healthCheck from "./utils/health-check";
 import errorMiddleware from "./middleware/error-middleware";
+import { Logger } from "./utils/logger";
+import express, { Request, Response } from "express";
+import healthCheckRouter from "./routes/health-check-router";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.get("/api/healthcheck", async (req: Request, res: Response) => {
-  try {
-    var dbStatus = await healthCheck.checkDatabaseConnection();
-    res.status(200).send({
-      serverStatus: "SERVER UP",
-      uptime: healthCheck.getUpTime(),
-      timestamp: new Date(),
-      databaseStatus: dbStatus,
-    });
-  } catch (error) {
-    res.status(503).send();
-  }
-});
+app.get("/api/health", healthCheckRouter);
+app.use("/api/user", userRouter);
 
 app.use(errorMiddleware);
 app.listen(process.env.PORT as String, () => {
