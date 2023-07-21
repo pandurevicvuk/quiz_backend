@@ -16,8 +16,8 @@ const validate =
 
       if (stripUnknown) {
         req.body = data.body;
-        // req.query = data.query;
-        // req.params = data.params;
+        req.query = data.query;
+        req.params = data.params;
       }
 
       schema.validateSync(data, { abortEarly: false });

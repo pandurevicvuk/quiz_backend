@@ -7,6 +7,7 @@ import {
   userSignUpScheme,
   userUpdateScheme,
 } from "../validation/user-validation";
+import { HttpException } from "../utils/http-exception";
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.get(
     try {
       const userId = req.params.id as unknown as number;
       const user = await userService.getById(userId);
+      if (!user) throw new HttpException(404, `User not found`);
       res.status(200).json({ user });
     } catch (error) {
       next(error);
@@ -47,7 +49,7 @@ router.get(
   }
 );
 
-router.put(
+router.patch(
   "/:id",
   validate(userUpdateScheme),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -69,7 +71,7 @@ router.delete(
     try {
       const userId = req.params.id as unknown as number;
       const user = await userService.deleteUser(userId);
-      res.status(200).json({ user });
+      res.status(200).json({ message: "User successfully deleted" });
     } catch (error) {
       next(error);
     }

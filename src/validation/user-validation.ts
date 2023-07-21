@@ -11,17 +11,17 @@ const userSignUpScheme = object({
 
 const userUpdateScheme = object({
   body: object({
-    firstName: string().required().trim().min(1),
-    lastName: string().required().trim().min(1),
-    password: string().required().trim().min(8),
+    firstName: string().trim().min(1),
+    lastName: string().trim().min(1),
+    password: string().trim().min(8),
   }),
-  parameters: object({
+  params: object({
     id: number().required(),
   }),
 });
 
 const userIdScheme = object({
-  parameters: object({
+  params: object({
     id: number().required(),
   }),
 });
