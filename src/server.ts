@@ -1,11 +1,12 @@
 import "dotenv/config";
-import cors from "cors";
-import userRouter from "./routes/user-router";
 
+import cors from "cors";
+import express from "express";
+import userRouter from "./routes/user-router";
 import errorMiddleware from "./middleware/error-middleware";
-import { Logger } from "./utils/logger";
-import express, { Request, Response } from "express";
 import healthCheckRouter from "./routes/health-check-router";
+
+import { Logger } from "./utils/logger";
 
 const app = express();
 app.use(express.json());
