@@ -12,7 +12,6 @@ import {
   ServerToClientEvents,
   SocketData,
 } from "../utils/interfaces";
-import { log } from "console";
 
 var queue: PlayerDTO[] = [];
 var rooms: any = {};
@@ -63,36 +62,33 @@ export function initializeSocket(server: any) {
 
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
-      const room: RoomDTO = rooms[init.room.name];
+      if (rooms[init.room.name].p1Time) return;
 
-      if (room.p1Time) return;
-
-      room.p1Time = new Date();
-      room.p1answer = data;
-      if (!room.p2Time) return;
+      rooms[init.room.name].p1Time = new Date();
+      rooms[init.room.name].p1answer = data;
+      if (!rooms[init.room.name].p2Time) return;
 
       //P1 ANSWERED LAST
-      const instruction = await getGameInstruction(room);
+      const instruction = await getGameInstruction(rooms[init.room.name]);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
-      startTimer(room, p1, p2);
+      startTimer(rooms[init.room.name], p1, p2);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
-      const room: RoomDTO = rooms[init.room.name];
+      if (rooms[init.room.name].p2Time) return;
 
-      if (room.p2Time) return;
-
-      room.p2Time = new Date();
-      room.p2answer = data;
-      if (!room.p1Time) return;
+      rooms[init.room.name].p2Time = new Date();
+      rooms[init.room.name].p2answer = data;
+      if (!rooms[init.room.name].p1Time) return;
 
       //P2 ANSWERED LAST
-      const instruction = await getGameInstruction(room);
+      const instruction = await getGameInstruction(rooms[init.room.name]);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
-      startTimer(room, p1, p2);
+      clearTimeout(rooms[init.room.name].timer);
+      startTimer(rooms[init.room.name], p1, p2);
     });
 
     socket.on("disconnect", (reason) => {
@@ -174,22 +170,33 @@ const getGameInstruction = async (
   };
 };
 
-const getInitGameInstruction = async (
+const getTimesUpInstruction = async (
   room: RoomDTO
 ): Promise<GameInstructionDTO> => {
   const { question, answer } = await getQuestion();
+  var formattedP1Time = "10:00";
+  var formattedP2Time = "10:00";
+
+  if (room.p1Time) {
+    const p1TimeDiff = differenceInMilliseconds(room.p1Time!, room.initTime);
+    formattedP1Time = (p1TimeDiff / 1000).toFixed(2);
+  }
+  if (room.p2Time) {
+    const p2TimeDiff = differenceInMilliseconds(room.p2Time, room.initTime);
+    formattedP2Time = (p2TimeDiff / 1000).toFixed(2);
+  }
 
   const p1: PlayerInstructionDTO = {
     question: question,
-    pt: formatTime(room.p1Time),
-    ot: formatTime(room.p2Time),
+    pt: formattedP1Time,
+    ot: formattedP2Time,
     pa: room.p1answer === room.answer,
     oa: room.p2answer === room.answer,
   };
   const p2 = {
     question: question,
-    pt: formatTime(room.p2Time),
-    ot: formatTime(room.p1Time),
+    pt: formattedP2Time,
+    ot: formattedP1Time,
     pa: room.p2answer === room.answer,
     oa: room.p1answer === room.answer,
   };
@@ -211,9 +218,7 @@ const getInitGameInstruction = async (
 
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   const timer = setTimeout(async () => {
-    console.log("Timer reached 10 seconds : ", rooms[room.name].initTime);
-    console.log("ROOM: ", rooms[room.name]);
-    const instruction: GameInstructionDTO = await getInitGameInstruction(
+    const instruction: GameInstructionDTO = await getTimesUpInstruction(
       rooms[room.name]
     );
     p1.socket.emit("game_update", instruction.p1);
@@ -222,6 +227,7 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   }, 10000);
 
   rooms[room.name].timer = timer;
+  rooms[room.name].initTime = new Date();
 };
 const getQuestion = async (): Promise<{ question: string; answer: string }> => {
   const letters = ["A", "B", "C"];
