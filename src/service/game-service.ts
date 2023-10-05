@@ -28,10 +28,7 @@ export function initializeSocket(server: any) {
   io.on("connection", async (socket) => {
     const { id, name, photo } = socket.handshake.query;
 
-    if (!id || !name || !photo) {
-      //DISCONNECT SOCKET MANUALLY
-      return;
-    }
+    if (!id || !name || !photo) return socket.disconnect();
 
     const player: PlayerDTO = {
       id: id as unknown as number,
@@ -56,6 +53,8 @@ export function initializeSocket(server: any) {
         opponentSocket.emit("game_end", {
           win: false,
           message: "Opponent left game!",
+          ps: 0,
+          os: 0,
         });
         opponentSocket.disconnect();
         clearTimeout(rooms[socket.data.roomName].timer);
@@ -260,16 +259,30 @@ const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p1Count = rooms[roomName].p1Count;
   const p2Count = rooms[roomName].p2Count;
   if (p1Count === p2Count) {
-    p1.socket.emit("game_end", { win: false, message: "DRAW" });
-    p2.socket.emit("game_end", { win: false, message: "DRAW" });
+    p1.socket.emit("game_end", {
+      win: false,
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
+    p2.socket.emit("game_end", {
+      win: false,
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
   } else {
     p1.socket.emit("game_end", {
       win: p1Count > p2Count,
       message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
+      ps: p1Count,
+      os: p2Count,
     });
     p2.socket.emit("game_end", {
       win: p2Count > p1Count,
       message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
+      ps: p2Count,
+      os: p1Count,
     });
   }
 
