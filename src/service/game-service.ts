@@ -58,6 +58,8 @@ export function initializeSocket(server: any) {
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
       const room: RoomDTO = rooms[init.room.name];
+      if (room.p1Time) return;
+
       room.p1Time = new Date();
       room.p1answer = data;
       if (!room.p2Time) return;
@@ -70,6 +72,8 @@ export function initializeSocket(server: any) {
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
       const room: RoomDTO = rooms[init.room.name];
+      if (room.p2Time) return;
+
       room.p2Time = new Date();
       room.p2answer = data;
       if (!room.p1Time) return;
