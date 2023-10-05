@@ -12,6 +12,7 @@ import {
   ServerToClientEvents,
   SocketData,
 } from "../utils/interfaces";
+import { log } from "console";
 
 var queue: PlayerDTO[] = [];
 var rooms: any = {};
@@ -72,6 +73,7 @@ export function initializeSocket(server: any) {
       const instruction = await getGameInstruction(rooms[init.room.name]);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
+
       startTimer(rooms[init.room.name], p1, p2);
     });
 
@@ -87,7 +89,7 @@ export function initializeSocket(server: any) {
       const instruction = await getGameInstruction(rooms[init.room.name]);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
-      clearTimeout(rooms[init.room.name].timer);
+
       startTimer(rooms[init.room.name], p1, p2);
     });
 
@@ -142,15 +144,12 @@ const getGameInstruction = async (
 
   const { question, answer } = await getQuestion();
 
-  rooms[room.name] = {
-    name: room.name,
-    initTime: new Date(),
-    answer: answer,
-    p1Time: null,
-    p2Time: null,
-    p1answer: null,
-    p2answer: null,
-  };
+  rooms[room.name].initTime = new Date();
+  rooms[room.name].answer = answer;
+  rooms[room.name].p1Time = null;
+  rooms[room.name].p2Time = null;
+  rooms[room.name].p1answer = null;
+  rooms[room.name].p2answer = null;
 
   return {
     p1: {
@@ -217,6 +216,11 @@ const getTimesUpInstruction = async (
 };
 
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
+  log("TIMER: ", rooms[room.name].timer);
+  if (rooms[room.name].timer) {
+    log("CLEARING PREVIOUS TIMER: ", rooms[room.name].timer);
+    clearTimeout(rooms[room.name].timer);
+  }
   const timer = setTimeout(async () => {
     const instruction: GameInstructionDTO = await getTimesUpInstruction(
       rooms[room.name]
