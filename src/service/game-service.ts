@@ -1,5 +1,10 @@
 import { Server } from "socket.io";
-import { GameInstructionDTO, PlayerDTO, RoomDTO } from "../dto/game-dto";
+import {
+  GameInstructionDTO,
+  PlayerDTO,
+  PlayerInstructionDTO,
+  RoomDTO,
+} from "../dto/game-dto";
 import { differenceInMilliseconds } from "date-fns";
 import {
   ClientToServerEvents,
@@ -24,7 +29,7 @@ export function initializeSocket(server: any) {
     const { id, name, photo } = socket.handshake.query;
 
     if (!id || !name || !photo) {
-      //DISCONNECT SOCKET MANUAL
+      //DISCONNECT SOCKET MANUALLY
       return;
     }
 
@@ -45,6 +50,7 @@ export function initializeSocket(server: any) {
     if (!p1 || !p2) return;
 
     const init = await createGameRoom(p1, p2);
+    startTimer(init.room, p1, p2);
 
     p1.socket.emit("start_game", {
       roomName: init.room.name,
@@ -65,9 +71,11 @@ export function initializeSocket(server: any) {
       room.p1answer = data;
       if (!room.p2Time) return;
 
+      //P1 ANSWERED LAST
       const instruction = await getGameInstruction(room);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
+      startTimer(room, p1, p2);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
@@ -80,9 +88,11 @@ export function initializeSocket(server: any) {
       room.p2answer = data;
       if (!room.p1Time) return;
 
+      //P2 ANSWERED LAST
       const instruction = await getGameInstruction(room);
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
+      startTimer(room, p1, p2);
     });
 
     socket.on("disconnect", (reason) => {
@@ -114,6 +124,7 @@ const createGameRoom = async (
     p2Time: null,
     p1answer: null,
     p2answer: null,
+    timer: null,
   };
   rooms[roomName] = room;
   return { room: room, question: initQuestion.question };
@@ -163,10 +174,72 @@ const getGameInstruction = async (
   };
 };
 
+const getInitGameInstruction = async (
+  room: RoomDTO
+): Promise<GameInstructionDTO> => {
+  const { question, answer } = await getQuestion();
+
+  const p1: PlayerInstructionDTO = {
+    question: question,
+    pt: formatTime(room.p1Time),
+    ot: formatTime(room.p2Time),
+    pa: room.p1answer === room.answer,
+    oa: room.p2answer === room.answer,
+  };
+  const p2 = {
+    question: question,
+    pt: formatTime(room.p2Time),
+    ot: formatTime(room.p1Time),
+    pa: room.p2answer === room.answer,
+    oa: room.p1answer === room.answer,
+  };
+  rooms[room.name] = {
+    name: room.name,
+    initTime: new Date(),
+    answer: answer,
+    p1Time: null,
+    p2Time: null,
+    p1answer: null,
+    p2answer: null,
+  };
+
+  return {
+    p1: p1,
+    p2: p2,
+  };
+};
+
+const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
+  const timer = setTimeout(async () => {
+    console.log("Timer reached 10 seconds : ", rooms[room.name].initTime);
+    console.log("ROOM: ", rooms[room.name]);
+    const instruction: GameInstructionDTO = await getInitGameInstruction(
+      rooms[room.name]
+    );
+    p1.socket.emit("game_update", instruction.p1);
+    p2.socket.emit("game_update", instruction.p2);
+    startTimer(rooms[room.name], p1, p2);
+  }, 10000);
+
+  rooms[room.name].timer = timer;
+};
 const getQuestion = async (): Promise<{ question: string; answer: string }> => {
   const letters = ["A", "B", "C"];
   const randomIndex = Math.floor(Math.random() * letters.length);
   const randomLetter = letters[randomIndex];
 
-  return { question: "Question Random", answer: randomLetter };
+  return {
+    question: `Question ${Math.floor(Math.random() * 1000)} `,
+    answer: randomLetter,
+  };
 };
+
+function formatTime(time: Date | null): string {
+  if (time === null) {
+    return "10:00";
+  }
+
+  const ss = String(time.getSeconds()).padStart(2, "0");
+  const ms = String(time.getMilliseconds()).padStart(3, "0");
+  return `${ss}:${ms}`;
+}

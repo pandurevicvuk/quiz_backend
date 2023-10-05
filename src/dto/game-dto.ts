@@ -16,17 +16,23 @@ export type RoomDTO = {
   p2Time: Date | null;
   p1answer: string | null;
   p2answer: string | null;
+  timer: NodeJS.Timeout | null;
 };
 
 export type PlayerInstructionDTO = {
   pa: boolean;
-  pt: string;
+  pt: string | null;
   oa: boolean;
-  ot: string;
+  ot: string | null;
   question: string;
 };
 
 export type GameInstructionDTO = {
   p1: PlayerInstructionDTO;
   p2: PlayerInstructionDTO;
+};
+export type TimesUpInstructionDTO = {
+  i1: PlayerInstructionDTO;
+  i2: PlayerInstructionDTO;
+  answer: string;
 };
