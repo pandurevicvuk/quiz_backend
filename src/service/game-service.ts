@@ -51,15 +51,6 @@ export function initializeSocket(server: any) {
 
     const init = await createGameRoom(p1, p2);
 
-    p1.socket.emit("start_game", {
-      roomName: init.room.name,
-      question: init.question,
-    });
-    p2.socket.emit("start_game", {
-      roomName: init.room.name,
-      question: init.question,
-    });
-
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
       if (rooms[init.room.name].p1Time) return;
@@ -143,6 +134,15 @@ const createGameRoom = async (
     timer: null,
   };
   rooms[roomName] = room;
+
+  p1.socket.emit("game_start", {
+    roomName: room.name,
+    question: initQuestion.question,
+  });
+  p2.socket.emit("game_start", {
+    roomName: room.name,
+    question: initQuestion.question,
+  });
   startTimer(room, p1, p2);
   return { room: room, question: initQuestion.question };
 };
@@ -182,14 +182,14 @@ const getGameInstruction = async (
   }
 
   const p1: PlayerInstructionDTO = {
-    question: question,
+    q: question,
     pt: formattedP1Time || "10:00",
     ot: formattedP2Time || "10:00",
     pa: p1Won,
     oa: p2won,
   };
   const p2 = {
-    question: question,
+    q: question,
     pt: formattedP2Time || "10:00",
     ot: formattedP1Time || "10:00",
     pa: p2won,
