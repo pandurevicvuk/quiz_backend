@@ -58,6 +58,7 @@ export function initializeSocket(server: any) {
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
       const room: RoomDTO = rooms[init.room.name];
+
       if (room.p1Time) return;
 
       room.p1Time = new Date();
@@ -72,6 +73,7 @@ export function initializeSocket(server: any) {
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
       const room: RoomDTO = rooms[init.room.name];
+
       if (room.p2Time) return;
 
       room.p2Time = new Date();
@@ -128,12 +130,13 @@ const getGameInstruction = async (
     room.p2Time ?? new Date(),
     room.initTime
   );
-  const formattedP1Time = (p1TimeDiff / 1000).toFixed(2) + " s";
-  const formattedP2Time = (p2TimeDiff / 1000).toFixed(2) + " s";
+  const formattedP1Time = (p1TimeDiff / 1000).toFixed(2);
+  const formattedP2Time = (p2TimeDiff / 1000).toFixed(2);
 
   const { question, answer } = await getQuestion();
 
   rooms[room.name] = {
+    name: room.name,
     initTime: new Date(),
     answer: answer,
     p1Time: null,
