@@ -50,7 +50,6 @@ export function initializeSocket(server: any) {
     if (!p1 || !p2) return;
 
     const init = await createGameRoom(p1, p2);
-    startTimer(init.room, p1, p2);
 
     p1.socket.emit("start_game", {
       roomName: init.room.name,
@@ -105,6 +104,12 @@ export function initializeSocket(server: any) {
   });
 }
 
+//
+//
+//
+//
+//
+
 const createGameRoom = async (
   p1: PlayerDTO,
   p2: PlayerDTO
@@ -125,6 +130,7 @@ const createGameRoom = async (
     timer: null,
   };
   rooms[roomName] = room;
+  startTimer(room, p1, p2);
   return { room: room, question: initQuestion.question };
 };
 
@@ -153,14 +159,14 @@ const getGameInstruction = async (
 
   return {
     p1: {
-      question: question,
+      question: `${room.name}:` + question,
       pt: formattedP1Time,
       ot: formattedP2Time,
       pa: room.answer === room.p1answer,
       oa: room.answer === room.p2answer,
     },
     p2: {
-      question: question,
+      question: `${room.name}:` + question,
       pt: formattedP2Time,
       ot: formattedP1Time,
       pa: room.answer === room.p2answer,
@@ -216,15 +222,15 @@ const getTimesUpInstruction = async (
 };
 
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
-  log("TIMER: ", rooms[room.name].timer);
   if (rooms[room.name].timer) {
-    log("CLEARING PREVIOUS TIMER: ", rooms[room.name].timer);
     clearTimeout(rooms[room.name].timer);
   }
+
   const timer = setTimeout(async () => {
     const instruction: GameInstructionDTO = await getTimesUpInstruction(
       rooms[room.name]
     );
+
     p1.socket.emit("game_update", instruction.p1);
     p2.socket.emit("game_update", instruction.p2);
     startTimer(rooms[room.name], p1, p2);
@@ -233,6 +239,7 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   rooms[room.name].timer = timer;
   rooms[room.name].initTime = new Date();
 };
+
 const getQuestion = async (): Promise<{ question: string; answer: string }> => {
   const letters = ["A", "B", "C"];
   const randomIndex = Math.floor(Math.random() * letters.length);
@@ -243,13 +250,3 @@ const getQuestion = async (): Promise<{ question: string; answer: string }> => {
     answer: randomLetter,
   };
 };
-
-function formatTime(time: Date | null): string {
-  if (time === null) {
-    return "10:00";
-  }
-
-  const ss = String(time.getSeconds()).padStart(2, "0");
-  const ms = String(time.getMilliseconds()).padStart(3, "0");
-  return `${ss}:${ms}`;
-}
