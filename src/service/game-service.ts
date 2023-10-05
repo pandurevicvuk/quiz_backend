@@ -65,11 +65,15 @@ export function initializeSocket(server: any) {
       if (rooms[init.room.name].p1Time) return;
 
       rooms[init.room.name].p1Time = new Date();
-      rooms[init.room.name].p1answer = data;
+
       if (!rooms[init.room.name].p2Time) return;
 
       //P1 ANSWERED LAST
+      if (rooms[init.room.name].count >= 10) {
+        return endGame(init.room.name, p1, p2);
+      }
       const instruction = await getGameInstruction(rooms[init.room.name]);
+
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
 
@@ -82,10 +86,15 @@ export function initializeSocket(server: any) {
 
       rooms[init.room.name].p2Time = new Date();
       rooms[init.room.name].p2answer = data;
+
       if (!rooms[init.room.name].p1Time) return;
 
       //P2 ANSWERED LAST
+      if (rooms[init.room.name].count >= 10) {
+        return endGame(init.room.name, p1, p2);
+      }
       const instruction = await getGameInstruction(rooms[init.room.name]);
+
       p1.socket.emit("game_update", instruction.p1);
       p2.socket.emit("game_update", instruction.p2);
 
@@ -123,6 +132,9 @@ const createGameRoom = async (
     name: roomName,
     initTime: new Date(),
     answer: initQuestion.answer,
+    count: 1,
+    p1Count: 0,
+    p2Count: 0,
     p1Time: null,
     p2Time: null,
     p1answer: null,
@@ -150,28 +162,34 @@ const getGameInstruction = async (
 
   const { question, answer } = await getQuestion();
 
+  const p1: PlayerInstructionDTO = {
+    question: question,
+    pt: formattedP1Time,
+    ot: formattedP2Time,
+    pa: room.answer == room.p1answer,
+    oa: room.answer == room.p2answer,
+  };
+  const p2 = {
+    question: question,
+    pt: formattedP2Time,
+    ot: formattedP1Time,
+    pa: room.answer == room.p2answer,
+    oa: room.answer == room.p1answer,
+  };
+
+  if (room.p1answer == room.answer) rooms[room.name].p1Count++;
+  if (room.p2answer == room.answer) rooms[room.name].p2Count++;
   rooms[room.name].initTime = new Date();
   rooms[room.name].answer = answer;
   rooms[room.name].p1Time = null;
   rooms[room.name].p2Time = null;
   rooms[room.name].p1answer = null;
   rooms[room.name].p2answer = null;
+  rooms[room.name].count++;
 
   return {
-    p1: {
-      question: `${room.name}:` + question,
-      pt: formattedP1Time,
-      ot: formattedP2Time,
-      pa: room.answer === room.p1answer,
-      oa: room.answer === room.p2answer,
-    },
-    p2: {
-      question: `${room.name}:` + question,
-      pt: formattedP2Time,
-      ot: formattedP1Time,
-      pa: room.answer === room.p2answer,
-      oa: room.answer === room.p1answer,
-    },
+    p1: p1,
+    p2: p2,
   };
 };
 
@@ -205,15 +223,16 @@ const getTimesUpInstruction = async (
     pa: room.p2answer === room.answer,
     oa: room.p1answer === room.answer,
   };
-  rooms[room.name] = {
-    name: room.name,
-    initTime: new Date(),
-    answer: answer,
-    p1Time: null,
-    p2Time: null,
-    p1answer: null,
-    p2answer: null,
-  };
+
+  if (room.p1answer == room.answer) rooms[room.name].p1Count++;
+  if (room.p2answer == room.answer) rooms[room.name].p2Count++;
+  rooms[room.name].initTime = new Date();
+  rooms[room.name].answer = answer;
+  rooms[room.name].p1Time = null;
+  rooms[room.name].p2Time = null;
+  rooms[room.name].p1answer = null;
+  rooms[room.name].p2answer = null;
+  rooms[room.name].count++;
 
   return {
     p1: p1,
@@ -227,6 +246,8 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   }
 
   const timer = setTimeout(async () => {
+    if (rooms[room.name].count >= 10) return endGame(room.name, p1, p2);
+
     const instruction: GameInstructionDTO = await getTimesUpInstruction(
       rooms[room.name]
     );
@@ -241,7 +262,7 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
 };
 
 const getQuestion = async (): Promise<{ question: string; answer: string }> => {
-  const letters = ["A", "B", "C"];
+  const letters = ["A", "B"];
   const randomIndex = Math.floor(Math.random() * letters.length);
   const randomLetter = letters[randomIndex];
 
@@ -249,4 +270,15 @@ const getQuestion = async (): Promise<{ question: string; answer: string }> => {
     question: `Question ${Math.floor(Math.random() * 1000)} `,
     answer: randomLetter,
   };
+};
+
+const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
+  const p1Count = rooms[roomName].p1Count;
+  const p2Count = rooms[roomName].p2Count;
+  p1.socket.emit("game_end", { win: p1Count > p2Count });
+  p2.socket.emit("game_end", { win: p2Count > p1Count });
+  p1.socket.disconnect();
+  p2.socket.disconnect();
+  clearTimeout(rooms[roomName].timer);
+  delete rooms[roomName];
 };

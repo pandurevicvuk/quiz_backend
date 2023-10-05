@@ -11,7 +11,10 @@ export type PlayerDTO = {
 export type RoomDTO = {
   name: string;
   initTime: Date;
+  count: number;
   answer: string;
+  p1Count: number;
+  p2Count: number;
   p1Time: Date | null;
   p2Time: Date | null;
   p1answer: string | null;
