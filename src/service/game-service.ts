@@ -43,6 +43,26 @@ export function initializeSocket(server: any) {
     //
     queue.push(player);
 
+    socket.on("disconnect", (reason) => {
+      const opponentSocket = io.sockets.sockets.get(
+        socket.data.opponentSocketId
+      );
+
+      if (
+        opponentSocket &&
+        opponentSocket.connected &&
+        reason == "client namespace disconnect"
+      ) {
+        opponentSocket.emit("game_end", {
+          win: false,
+          message: "Opponent left game!",
+        });
+        opponentSocket.disconnect();
+        clearTimeout(rooms[socket.data.roomName].timer);
+        delete rooms[socket.data.roomName];
+      }
+    });
+
     if (queue.length < 2) return;
 
     const p1 = queue.shift();
@@ -92,16 +112,6 @@ export function initializeSocket(server: any) {
 
       startTimer(rooms[init.room.name], p1, p2);
     });
-
-    socket.on("disconnect", (reason) => {
-      console.log("***DISCONNECT***");
-    });
-
-    socket.on("disconnecting", (reason) => {
-      console.log("***DISCONNECTING***");
-      console.log("Reason:", reason);
-      console.log("Rooms leaving:", socket.rooms);
-    });
   });
 }
 
@@ -135,10 +145,14 @@ const createGameRoom = async (
   };
   rooms[roomName] = room;
 
+  p1.socket.data.roomName = room.name;
+  p1.socket.data.opponentSocketId = p2.socket.id;
   p1.socket.emit("game_start", {
     roomName: room.name,
     question: initQuestion.question,
   });
+  p2.socket.data.roomName = room.name;
+  p2.socket.data.opponentSocketId = p1.socket.id;
   p2.socket.emit("game_start", {
     roomName: room.name,
     question: initQuestion.question,
@@ -245,10 +259,22 @@ const getQuestion = async (): Promise<{ question: string; answer: string }> => {
 const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p1Count = rooms[roomName].p1Count;
   const p2Count = rooms[roomName].p2Count;
-  p1.socket.emit("game_end", { win: p1Count > p2Count });
-  p2.socket.emit("game_end", { win: p2Count > p1Count });
-  p1.socket.disconnect();
-  p2.socket.disconnect();
+  if (p1Count === p2Count) {
+    p1.socket.emit("game_end", { win: false, message: "DRAW" });
+    p2.socket.emit("game_end", { win: false, message: "DRAW" });
+  } else {
+    p1.socket.emit("game_end", {
+      win: p1Count > p2Count,
+      message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
+    });
+    p2.socket.emit("game_end", {
+      win: p2Count > p1Count,
+      message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
+    });
+  }
+
+  p1.socket.disconnect(true);
+  p2.socket.disconnect(true);
   clearTimeout(rooms[roomName].timer);
   delete rooms[roomName];
 };
