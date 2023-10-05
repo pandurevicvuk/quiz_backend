@@ -65,6 +65,7 @@ export function initializeSocket(server: any) {
       if (rooms[init.room.name].p1Time) return;
 
       rooms[init.room.name].p1Time = new Date();
+      rooms[init.room.name].p1answer = data;
 
       if (!rooms[init.room.name].p2Time) return;
 
@@ -149,56 +150,27 @@ const createGameRoom = async (
 const getGameInstruction = async (
   room: RoomDTO
 ): Promise<GameInstructionDTO> => {
-  const p1TimeDiff = differenceInMilliseconds(
-    room.p1Time ?? new Date(),
-    room.initTime
-  );
-  const p2TimeDiff = differenceInMilliseconds(
-    room.p2Time ?? new Date(),
-    room.initTime
-  );
-  const formattedP1Time = (p1TimeDiff / 1000).toFixed(2);
-  const formattedP2Time = (p2TimeDiff / 1000).toFixed(2);
-
   const { question, answer } = await getQuestion();
+  var formattedP1Time;
+  var formattedP2Time;
+  var isP1First = true;
+  var isP2First = true;
 
-  const p1: PlayerInstructionDTO = {
-    question: question,
-    pt: formattedP1Time,
-    ot: formattedP2Time,
-    pa: room.answer == room.p1answer,
-    oa: room.answer == room.p2answer,
-  };
-  const p2 = {
-    question: question,
-    pt: formattedP2Time,
-    ot: formattedP1Time,
-    pa: room.answer == room.p2answer,
-    oa: room.answer == room.p1answer,
-  };
+  if (room.p1Time && room.p2Time) {
+    isP1First = room.p1Time >= room.p2Time;
+    isP2First = room.p1Time < room.p2Time;
+  }
 
-  if (room.p1answer == room.answer) rooms[room.name].p1Count++;
-  if (room.p2answer == room.answer) rooms[room.name].p2Count++;
-  rooms[room.name].initTime = new Date();
-  rooms[room.name].answer = answer;
-  rooms[room.name].p1Time = null;
-  rooms[room.name].p2Time = null;
-  rooms[room.name].p1answer = null;
-  rooms[room.name].p2answer = null;
-  rooms[room.name].count++;
-
-  return {
-    p1: p1,
-    p2: p2,
-  };
-};
-
-const getTimesUpInstruction = async (
-  room: RoomDTO
-): Promise<GameInstructionDTO> => {
-  const { question, answer } = await getQuestion();
-  var formattedP1Time = "10:00";
-  var formattedP2Time = "10:00";
+  const p1Won =
+    (room.p1answer === room.answer && room.p2answer !== room.answer) ||
+    (room.p1answer === room.answer &&
+      room.p2answer === room.answer &&
+      isP1First);
+  const p2won =
+    (room.p1answer !== room.answer && room.p2answer === room.answer) ||
+    (room.p1answer === room.answer &&
+      room.p2answer === room.answer &&
+      isP2First);
 
   if (room.p1Time) {
     const p1TimeDiff = differenceInMilliseconds(room.p1Time!, room.initTime);
@@ -211,28 +183,30 @@ const getTimesUpInstruction = async (
 
   const p1: PlayerInstructionDTO = {
     question: question,
-    pt: formattedP1Time,
-    ot: formattedP2Time,
-    pa: room.p1answer === room.answer,
-    oa: room.p2answer === room.answer,
+    pt: formattedP1Time || "10:00",
+    ot: formattedP2Time || "10:00",
+    pa: p1Won,
+    oa: p2won,
   };
   const p2 = {
     question: question,
-    pt: formattedP2Time,
-    ot: formattedP1Time,
-    pa: room.p2answer === room.answer,
-    oa: room.p1answer === room.answer,
+    pt: formattedP2Time || "10:00",
+    ot: formattedP1Time || "10:00",
+    pa: p2won,
+    oa: p1Won,
   };
 
-  if (room.p1answer == room.answer) rooms[room.name].p1Count++;
-  if (room.p2answer == room.answer) rooms[room.name].p2Count++;
-  rooms[room.name].initTime = new Date();
+  rooms[room.name].count++;
   rooms[room.name].answer = answer;
+  if (p1Won) rooms[room.name].p1Count++;
+  if (p2won) rooms[room.name].p2Count++;
+
+  //reset room values
+  rooms[room.name].initTime = new Date();
   rooms[room.name].p1Time = null;
   rooms[room.name].p2Time = null;
   rooms[room.name].p1answer = null;
   rooms[room.name].p2answer = null;
-  rooms[room.name].count++;
 
   return {
     p1: p1,
@@ -241,17 +215,13 @@ const getTimesUpInstruction = async (
 };
 
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
-  if (rooms[room.name].timer) {
-    clearTimeout(rooms[room.name].timer);
-  }
+  //remove previous timer
+  if (rooms[room.name].timer) clearTimeout(rooms[room.name].timer);
 
   const timer = setTimeout(async () => {
     if (rooms[room.name].count >= 10) return endGame(room.name, p1, p2);
 
-    const instruction: GameInstructionDTO = await getTimesUpInstruction(
-      rooms[room.name]
-    );
-
+    const instruction = await getGameInstruction(rooms[room.name]);
     p1.socket.emit("game_update", instruction.p1);
     p2.socket.emit("game_update", instruction.p2);
     startTimer(rooms[room.name], p1, p2);

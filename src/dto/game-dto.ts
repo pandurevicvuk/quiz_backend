@@ -27,7 +27,7 @@ export type PlayerInstructionDTO = {
   pt: string | null;
   oa: boolean;
   ot: string | null;
-  question: string;
+  q: string;
 };
 
 export type GameInstructionDTO = {
