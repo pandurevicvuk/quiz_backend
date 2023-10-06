@@ -2,7 +2,8 @@ import { Server } from "socket.io";
 import {
   GameInstructionDTO,
   PlayerDTO,
-  PlayerInstructionDTO,
+  PlayerResultDTO,
+  QuestionDTO,
   RoomDTO,
 } from "../dto/game-dto";
 import { differenceInMilliseconds } from "date-fns";
@@ -28,12 +29,17 @@ export function initializeSocket(server: any) {
   io.on("connection", async (socket) => {
     const { id, name, photo } = socket.handshake.query;
 
-    if (!id || !name || !photo) return socket.disconnect();
+    if (!id) return socket.disconnect();
+
+    //logic to get player from DB
 
     const player: PlayerDTO = {
       id: id as unknown as number,
-      name: name as unknown as string,
-      photo: photo as unknown as string,
+      name: `Ime ${queue.length + 1}`,
+      photo:
+        queue.length === 0
+          ? "https://drive.google.com/uc?export=download&id=12i888-tePLpJICw2PmXCEYTFYeC6IO9o"
+          : "https://drive.google.com/uc?export=download&id=1-Jzoca4gPhgOu4WUuiOq2xV7gCqEPSJp",
       socket: socket,
     };
 
@@ -72,6 +78,7 @@ export function initializeSocket(server: any) {
 
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
+      log("P1: " + data);
       if (rooms[init.room.name].p1Time) return;
 
       rooms[init.room.name].p1Time = new Date();
@@ -83,16 +90,19 @@ export function initializeSocket(server: any) {
       if (rooms[init.room.name].count >= 10) {
         return endGame(init.room.name, p1, p2);
       }
-      const instruction = await getGameInstruction(rooms[init.room.name]);
-
-      p1.socket.emit("game_update", instruction.p1);
-      p2.socket.emit("game_update", instruction.p2);
-
+      const result = await getRoundResult(rooms[init.room.name]);
+      p1.socket.emit("round_result", result.p1);
+      p2.socket.emit("round_result", result.p2);
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      const question = await getRandomQuestion();
+      p1.socket.emit("round_question", question);
+      p2.socket.emit("round_question", question);
       startTimer(rooms[init.room.name], p1, p2);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
+      log("P2: " + data);
       if (rooms[init.room.name].p2Time) return;
 
       rooms[init.room.name].p2Time = new Date();
@@ -104,10 +114,14 @@ export function initializeSocket(server: any) {
       if (rooms[init.room.name].count >= 10) {
         return endGame(init.room.name, p1, p2);
       }
-      const instruction = await getGameInstruction(rooms[init.room.name]);
+      const result = await getRoundResult(rooms[init.room.name]);
 
-      p1.socket.emit("game_update", instruction.p1);
-      p2.socket.emit("game_update", instruction.p2);
+      p1.socket.emit("round_result", result.p1);
+      p2.socket.emit("round_result", result.p2);
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      const question = await getRandomQuestion();
+      p1.socket.emit("round_question", question);
+      p2.socket.emit("round_question", question);
 
       startTimer(rooms[init.room.name], p1, p2);
     });
@@ -123,16 +137,15 @@ export function initializeSocket(server: any) {
 const createGameRoom = async (
   p1: PlayerDTO,
   p2: PlayerDTO
-): Promise<{ room: RoomDTO; question: string }> => {
+): Promise<{ room: RoomDTO; question: any }> => {
   const sortedUserIds = [p1.id, p2.id].sort();
   const roomName = sortedUserIds.join("_");
 
-  const initQuestion = await getQuestion();
+  const question = await getRandomQuestion();
 
   const room: RoomDTO = {
     name: roomName,
     initTime: new Date(),
-    answer: initQuestion.answer,
     count: 1,
     p1Count: 0,
     p2Count: 0,
@@ -147,23 +160,31 @@ const createGameRoom = async (
   p1.socket.data.roomName = room.name;
   p1.socket.data.opponentSocketId = p2.socket.id;
   p1.socket.emit("game_start", {
-    roomName: room.name,
-    question: initQuestion.question,
+    rn: room.name,
+    on: p2.name,
+    op: p2.photo,
+    pn: p1.name,
+    pp: p1.photo,
   });
   p2.socket.data.roomName = room.name;
   p2.socket.data.opponentSocketId = p1.socket.id;
   p2.socket.emit("game_start", {
-    roomName: room.name,
-    question: initQuestion.question,
+    rn: room.name,
+    on: p1.name,
+    op: p1.photo,
+    pn: p2.name,
+    pp: p2.photo,
   });
+  await new Promise((resolve) => setTimeout(resolve, 8000));
+
+  p1.socket.emit("round_question", question);
+  p2.socket.emit("round_question", question);
+
   startTimer(room, p1, p2);
-  return { room: room, question: initQuestion.question };
+  return { room: room, question: question };
 };
 
-const getGameInstruction = async (
-  room: RoomDTO
-): Promise<GameInstructionDTO> => {
-  const { question, answer } = await getQuestion();
+const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
   var formattedP1Time;
   var formattedP2Time;
   var isP1First = true;
@@ -175,15 +196,11 @@ const getGameInstruction = async (
   }
 
   const p1Won =
-    (room.p1answer === room.answer && room.p2answer !== room.answer) ||
-    (room.p1answer === room.answer &&
-      room.p2answer === room.answer &&
-      isP1First);
+    (room.p1answer === "A" && room.p2answer !== "A") ||
+    (room.p1answer === "A" && room.p2answer === "A" && isP1First);
   const p2won =
-    (room.p1answer !== room.answer && room.p2answer === room.answer) ||
-    (room.p1answer === room.answer &&
-      room.p2answer === room.answer &&
-      isP2First);
+    (room.p1answer !== "A" && room.p2answer === "A") ||
+    (room.p1answer === "A" && room.p2answer === "A" && isP2First);
 
   if (room.p1Time) {
     const p1TimeDiff = differenceInMilliseconds(room.p1Time!, room.initTime);
@@ -193,26 +210,24 @@ const getGameInstruction = async (
     const p2TimeDiff = differenceInMilliseconds(room.p2Time, room.initTime);
     formattedP2Time = (p2TimeDiff / 1000).toFixed(2);
   }
-
-  const p1: PlayerInstructionDTO = {
-    q: question,
-    pt: formattedP1Time || "10:00",
-    ot: formattedP2Time || "10:00",
-    pa: p1Won,
-    oa: p2won,
-  };
-  const p2 = {
-    q: question,
-    pt: formattedP2Time || "10:00",
-    ot: formattedP1Time || "10:00",
-    pa: p2won,
-    oa: p1Won,
-  };
-
   rooms[room.name].count++;
-  rooms[room.name].answer = answer;
   if (p1Won) rooms[room.name].p1Count++;
   if (p2won) rooms[room.name].p2Count++;
+
+  const p1: PlayerResultDTO = {
+    pt: formattedP1Time || "10.00",
+    ot: formattedP2Time || "10.00",
+    pa: p1Won,
+    oa: p2won,
+    qc: room.count,
+  };
+  const p2: PlayerResultDTO = {
+    pt: formattedP2Time || "10.00",
+    ot: formattedP1Time || "10.00",
+    pa: p2won,
+    oa: p1Won,
+    qc: room.count,
+  };
 
   //reset room values
   rooms[room.name].initTime = new Date();
@@ -234,9 +249,13 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   const timer = setTimeout(async () => {
     if (rooms[room.name].count >= 10) return endGame(room.name, p1, p2);
 
-    const instruction = await getGameInstruction(rooms[room.name]);
-    p1.socket.emit("game_update", instruction.p1);
-    p2.socket.emit("game_update", instruction.p2);
+    const result = await getRoundResult(rooms[room.name]);
+    p1.socket.emit("round_result", result.p1);
+    p2.socket.emit("round_result", result.p2);
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    const question = await getRandomQuestion();
+    p1.socket.emit("round_question", question);
+    p2.socket.emit("round_question", question);
     startTimer(rooms[room.name], p1, p2);
   }, 10000);
 
@@ -244,16 +263,103 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   rooms[room.name].initTime = new Date();
 };
 
-const getQuestion = async (): Promise<{ question: string; answer: string }> => {
-  const letters = ["A", "B"];
-  const randomIndex = Math.floor(Math.random() * letters.length);
-  const randomLetter = letters[randomIndex];
+const triviaQuestions: { q: string; a: string; b: string; c: string }[] = [
+  {
+    q: "Who wrote the famous play 'Romeo and Juliet'?",
+    a: "William Shakespeare",
+    b: "Charles Dickens",
+    c: "Jane Austen",
+  },
+  {
+    q: "What year did the Titanic sink?",
+    a: "1912",
+    b: "1920",
+    c: "1905",
+  },
+  {
+    q: "Which U.S. president issued the Emancipation Proclamation?",
+    a: "Abraham Lincoln",
+    b: "George Washington",
+    c: "Thomas Jefferson",
+  },
+  {
+    q: "Which Beatles album is often considered their masterpiece?",
+    a: "Sgt. Pepper's Lonely Hearts Club Band",
+    b: "Abbey Road",
+    c: "Revolver",
+  },
+  {
+    q: "Who was known as the 'King of Pop'?",
+    a: "Michael Jackson",
+    b: "Elvis Presley",
+    c: "Frank Sinatra",
+  },
+  {
+    q: "Who wrote the famous play 'Romeo and Juliet'?",
+    a: "William Shakespeare",
+    b: "Charles Dickens",
+    c: "Jane Austen",
+  },
+  {
+    q: "What year did the Titanic sink?",
+    a: "1912",
+    b: "1920",
+    c: "1905",
+  },
+  {
+    q: "Which U.S. president issued the Emancipation Proclamation?",
+    a: "Abraham Lincoln",
+    b: "George Washington",
+    c: "Thomas Jefferson",
+  },
+  {
+    q: "Which Beatles album is often considered their masterpiece?",
+    a: "Sgt. Pepper's Lonely Hearts Club Band",
+    b: "Abbey Road",
+    c: "Revolver",
+  },
+  {
+    q: "Who was known as the 'King of Pop'?",
+    a: "Michael Jackson",
+    b: "Elvis Presley",
+    c: "Frank Sinatra",
+  },
+  {
+    q: "Which ancient civilization built the pyramids of Giza?",
+    a: "Ancient Egyptians",
+    b: "Ancient Greeks",
+    c: "Ancient Romans",
+  },
+  {
+    q: "What is the national flower of Japan?",
+    a: "Cherry Blossom",
+    b: "Rose",
+    c: "Lily",
+  },
+  {
+    q: "Who was the first woman to fly solo across the Atlantic Ocean?",
+    a: "Amelia Earhart",
+    b: "Bessie Coleman",
+    c: "Harriet Quimby",
+  },
+  {
+    q: "Which classical composer is known for 'Fur Elise' and 'Moonlight Sonata'?",
+    a: "Ludwig van Beethoven",
+    b: "Wolfgang Amadeus Mozart",
+    c: "Johann Sebastian Bach",
+  },
+  {
+    q: "In which year did the Berlin Wall fall, leading to the reunification of Germany?",
+    a: "1989",
+    b: "1991",
+    c: "1987",
+  },
+];
 
-  return {
-    question: `Question ${Math.floor(Math.random() * 1000)} `,
-    answer: randomLetter,
-  };
-};
+function getRandomQuestion(): QuestionDTO {
+  const randomIndex = Math.floor(Math.random() * triviaQuestions.length);
+  return triviaQuestions[randomIndex];
+}
 
 const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p1Count = rooms[roomName].p1Count;
