@@ -82,15 +82,15 @@ export function initializeSocket(server: any) {
       rooms[init.room.name].p1answer = data;
 
       if (!rooms[init.room.name].p2Time) return;
-
       //P1 ANSWERED LAST
-      if (rooms[init.room.name].count >= 10) {
-        return endGame(init.room.name, p1, p2);
-      }
+
       const result = await getRoundResult(rooms[init.room.name]);
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
+      if (rooms[init.room.name].count >= 10) {
+        return endGame(init.room.name, p1, p2);
+      }
 
       const question = rooms[init.room.name].questions.pop();
       p1.socket.emit("round_question", {
@@ -112,16 +112,16 @@ export function initializeSocket(server: any) {
       rooms[init.room.name].p2answer = data;
 
       if (!rooms[init.room.name].p1Time) return;
-
       //P2 ANSWERED LAST
-      if (rooms[init.room.name].count >= 10) {
-        return endGame(init.room.name, p1, p2);
-      }
+
       const result = await getRoundResult(rooms[init.room.name]);
 
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
+      if (rooms[init.room.name].count >= 10) {
+        return endGame(init.room.name, p1, p2);
+      }
 
       const question = rooms[init.room.name].questions.pop();
       p1.socket.emit("round_question", {
@@ -252,7 +252,7 @@ const createGameRoom = async (
     pp: p2.photo,
   });
   await new Promise((resolve) => setTimeout(resolve, 8000));
-  const question = rooms[roomName].questions.pop();
+  const question = rooms[room.name].questions.pop();
   p1.socket.emit("round_question", { ...question, qc: 1 });
   p2.socket.emit("round_question", { ...question, qc: 1 });
 
@@ -295,14 +295,14 @@ const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
   const p1: PlayerResultDTO = {
     pt: formattedP1Time || "10.00",
     ot: formattedP2Time || "10.00",
-    pa: p1Won,
-    oa: p2won,
+    pa: room.p1answer!,
+    oa: room.p2answer!,
   };
   const p2: PlayerResultDTO = {
     pt: formattedP2Time || "10.00",
     ot: formattedP1Time || "10.00",
-    pa: p2won,
-    oa: p1Won,
+    pa: room.p2answer!,
+    oa: room.p1answer!,
   };
 
   //reset room values

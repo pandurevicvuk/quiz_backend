@@ -23,9 +23,9 @@ export type RoomDTO = {
 };
 
 export type PlayerResultDTO = {
-  pa: boolean;
+  pa: string;
   pt: string | null;
-  oa: boolean;
+  oa: string;
   ot: string | null;
 };
 
