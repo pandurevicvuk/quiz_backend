@@ -27,8 +27,7 @@ export function initializeSocket(server: any) {
   >(server, { cors: { origin: "*" } });
 
   io.on("connection", async (socket) => {
-    const { id, name, photo } = socket.handshake.query;
-
+    const { id } = socket.handshake.query;
     if (!id) return socket.disconnect();
 
     //logic to get player from DB
@@ -38,8 +37,8 @@ export function initializeSocket(server: any) {
       name: `Ime ${queue.length + 1}`,
       photo:
         queue.length === 0
-          ? "https://drive.google.com/uc?export=download&id=12i888-tePLpJICw2PmXCEYTFYeC6IO9o"
-          : "https://drive.google.com/uc?export=download&id=1-Jzoca4gPhgOu4WUuiOq2xV7gCqEPSJp",
+          ? "https://picsum.photos/250?image=9"
+          : "https://picsum.photos/250?image=24",
       socket: socket,
     };
 
@@ -159,6 +158,7 @@ const createGameRoom = async (
   p1.socket.data.roomName = room.name;
   p1.socket.data.opponentSocketId = p2.socket.id;
   p1.socket.emit("game_start", {
+    t: "RED",
     rn: room.name,
     on: p2.name,
     op: p2.photo,
@@ -168,6 +168,7 @@ const createGameRoom = async (
   p2.socket.data.roomName = room.name;
   p2.socket.data.opponentSocketId = p1.socket.id;
   p2.socket.emit("game_start", {
+    t: "BLUE",
     rn: room.name,
     on: p1.name,
     op: p1.photo,

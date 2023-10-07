@@ -16,7 +16,7 @@ app.use(cors());
 const server = http.createServer(app);
 initializeSocket(server);
 
-app.use("/api/health", healthCheckRouter);
+app.use("/health", healthCheckRouter);
 app.use("/api/user", userRouter);
 
 app.use(errorMiddleware);
