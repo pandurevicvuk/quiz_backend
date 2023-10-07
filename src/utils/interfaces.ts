@@ -3,12 +3,7 @@ export interface ServerToClientEvents {
   basicEmit: (a: number, b: string, c: Buffer) => void;
   withAck: (d: string, callback: (e: number) => void) => void;
   start_game: (message: string) => void;
-  game_end: (data: {
-    win: boolean;
-    message: string;
-    ps: number;
-    os: number;
-  }) => {};
+  game_end: (data: { message: string; ps: number; os: number }) => {};
 }
 
 export interface ClientToServerEvents {

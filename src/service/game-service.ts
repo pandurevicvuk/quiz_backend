@@ -57,8 +57,7 @@ export function initializeSocket(server: any) {
         reason == "client namespace disconnect"
       ) {
         opponentSocket.emit("game_end", {
-          win: false,
-          message: "Opponent left game!",
+          message: "OPPONENT_LEFT",
           ps: 0,
           os: 0,
         });
@@ -366,26 +365,22 @@ const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p2Count = rooms[roomName].p2Count;
   if (p1Count === p2Count) {
     p1.socket.emit("game_end", {
-      win: false,
       message: "DRAW",
       ps: p1Count,
       os: p2Count,
     });
     p2.socket.emit("game_end", {
-      win: false,
       message: "DRAW",
       ps: p1Count,
       os: p2Count,
     });
   } else {
     p1.socket.emit("game_end", {
-      win: p1Count > p2Count,
       message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
       ps: p1Count,
       os: p2Count,
     });
     p2.socket.emit("game_end", {
-      win: p2Count > p1Count,
       message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
       ps: p2Count,
       os: p1Count,
