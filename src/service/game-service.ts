@@ -76,7 +76,6 @@ export function initializeSocket(server: any) {
 
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
-      log("P1: " + data);
       if (rooms[init.room.name].p1Time) return;
 
       rooms[init.room.name].p1Time = new Date();
@@ -92,15 +91,21 @@ export function initializeSocket(server: any) {
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
-      const question = await getRandomQuestion();
-      p1.socket.emit("round_question", question);
-      p2.socket.emit("round_question", question);
+
+      const question = rooms[init.room.name].questions.pop();
+      p1.socket.emit("round_question", {
+        ...question,
+        qc: rooms[init.room.name].count,
+      });
+      p2.socket.emit("round_question", {
+        ...question,
+        qc: rooms[init.room.name].count,
+      });
       startTimer(rooms[init.room.name], p1, p2);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
-      log("P2: " + data);
       if (rooms[init.room.name].p2Time) return;
 
       rooms[init.room.name].p2Time = new Date();
@@ -117,9 +122,16 @@ export function initializeSocket(server: any) {
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
-      const question = await getRandomQuestion();
-      p1.socket.emit("round_question", question);
-      p2.socket.emit("round_question", question);
+
+      const question = rooms[init.room.name].questions.pop();
+      p1.socket.emit("round_question", {
+        ...question,
+        qc: rooms[init.room.name].count,
+      });
+      p2.socket.emit("round_question", {
+        ...question,
+        qc: rooms[init.room.name].count,
+      });
 
       startTimer(rooms[init.room.name], p1, p2);
     });
@@ -139,7 +151,9 @@ const createGameRoom = async (
   const sortedUserIds = [p1.id, p2.id].sort();
   const roomName = sortedUserIds.join("_");
 
-  const question = await getRandomQuestion();
+  //logic for retrieving not answered questions for players
+  //for now dummy data is used
+  //...
 
   const room: RoomDTO = {
     name: roomName,
@@ -152,6 +166,68 @@ const createGameRoom = async (
     p1answer: null,
     p2answer: null,
     timer: null,
+    questions: [
+      {
+        q: "Who wrote the famous play 'Romeo and Juliet'?",
+        a: "William Shakespeare",
+        b: "Charles Dickens",
+        c: "Jane Austen",
+      },
+      {
+        q: "What year did the Titanic sink?",
+        a: "1912",
+        b: "1920",
+        c: "1905",
+      },
+      {
+        q: "Which U.S. president issued the Emancipation Proclamation?",
+        a: "Abraham Lincoln",
+        b: "George Washington",
+        c: "Thomas Jefferson",
+      },
+      {
+        q: "Which Beatles album is often considered their masterpiece?",
+        a: "Sgt. Pepper's Lonely Hearts Club Band",
+        b: "Abbey Road",
+        c: "Revolver",
+      },
+      {
+        q: "Who was known as the 'King of Pop'?",
+        a: "Michael Jackson",
+        b: "Elvis Presley",
+        c: "Frank Sinatra",
+      },
+      {
+        q: "Who wrote the famous play 'Romeo and Juliet'?",
+        a: "William Shakespeare",
+        b: "Charles Dickens",
+        c: "Jane Austen",
+      },
+      {
+        q: "What year did the Titanic sink?",
+        a: "1912",
+        b: "1920",
+        c: "1905",
+      },
+      {
+        q: "Which U.S. president issued the Emancipation Proclamation?",
+        a: "Abraham Lincoln",
+        b: "George Washington",
+        c: "Thomas Jefferson",
+      },
+      {
+        q: "Which Beatles album is often considered their masterpiece?",
+        a: "Sgt. Pepper's Lonely Hearts Club Band",
+        b: "Abbey Road",
+        c: "Revolver",
+      },
+      {
+        q: "Who was known as the 'King of Pop'?",
+        a: "Michael Jackson",
+        b: "Elvis Presley",
+        c: "Frank Sinatra",
+      },
+    ],
   };
   rooms[roomName] = room;
 
@@ -176,15 +252,17 @@ const createGameRoom = async (
     pp: p2.photo,
   });
   await new Promise((resolve) => setTimeout(resolve, 8000));
-
-  p1.socket.emit("round_question", question);
-  p2.socket.emit("round_question", question);
+  const question = rooms[roomName].questions.pop();
+  p1.socket.emit("round_question", { ...question, qc: 1 });
+  p2.socket.emit("round_question", { ...question, qc: 1 });
 
   startTimer(room, p1, p2);
   return { room: room, question: question };
 };
 
 const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
+  clearTimeout(rooms[room.name].timer);
+
   var formattedP1Time;
   var formattedP2Time;
   var isP1First = true;
@@ -219,14 +297,12 @@ const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
     ot: formattedP2Time || "10.00",
     pa: p1Won,
     oa: p2won,
-    qc: room.count,
   };
   const p2: PlayerResultDTO = {
     pt: formattedP2Time || "10.00",
     ot: formattedP1Time || "10.00",
     pa: p2won,
     oa: p1Won,
-    qc: room.count,
   };
 
   //reset room values
@@ -253,113 +329,21 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
     p1.socket.emit("round_result", result.p1);
     p2.socket.emit("round_result", result.p2);
     await new Promise((resolve) => setTimeout(resolve, 4000));
-    const question = await getRandomQuestion();
-    p1.socket.emit("round_question", question);
-    p2.socket.emit("round_question", question);
+    const question = rooms[room.name].questions.pop();
+    p1.socket.emit("round_question", {
+      ...question,
+      qc: rooms[room.name].count,
+    });
+    p2.socket.emit("round_question", {
+      ...question,
+      qc: rooms[room.name].count,
+    });
     startTimer(rooms[room.name], p1, p2);
   }, 10000);
 
   rooms[room.name].timer = timer;
   rooms[room.name].initTime = new Date();
 };
-
-const triviaQuestions: { q: string; a: string; b: string; c: string }[] = [
-  {
-    q: "Who wrote the famous play 'Romeo and Juliet'?",
-    a: "William Shakespeare",
-    b: "Charles Dickens",
-    c: "Jane Austen",
-  },
-  {
-    q: "What year did the Titanic sink?",
-    a: "1912",
-    b: "1920",
-    c: "1905",
-  },
-  {
-    q: "Which U.S. president issued the Emancipation Proclamation?",
-    a: "Abraham Lincoln",
-    b: "George Washington",
-    c: "Thomas Jefferson",
-  },
-  {
-    q: "Which Beatles album is often considered their masterpiece?",
-    a: "Sgt. Pepper's Lonely Hearts Club Band",
-    b: "Abbey Road",
-    c: "Revolver",
-  },
-  {
-    q: "Who was known as the 'King of Pop'?",
-    a: "Michael Jackson",
-    b: "Elvis Presley",
-    c: "Frank Sinatra",
-  },
-  {
-    q: "Who wrote the famous play 'Romeo and Juliet'?",
-    a: "William Shakespeare",
-    b: "Charles Dickens",
-    c: "Jane Austen",
-  },
-  {
-    q: "What year did the Titanic sink?",
-    a: "1912",
-    b: "1920",
-    c: "1905",
-  },
-  {
-    q: "Which U.S. president issued the Emancipation Proclamation?",
-    a: "Abraham Lincoln",
-    b: "George Washington",
-    c: "Thomas Jefferson",
-  },
-  {
-    q: "Which Beatles album is often considered their masterpiece?",
-    a: "Sgt. Pepper's Lonely Hearts Club Band",
-    b: "Abbey Road",
-    c: "Revolver",
-  },
-  {
-    q: "Who was known as the 'King of Pop'?",
-    a: "Michael Jackson",
-    b: "Elvis Presley",
-    c: "Frank Sinatra",
-  },
-  {
-    q: "Which ancient civilization built the pyramids of Giza?",
-    a: "Ancient Egyptians",
-    b: "Ancient Greeks",
-    c: "Ancient Romans",
-  },
-  {
-    q: "What is the national flower of Japan?",
-    a: "Cherry Blossom",
-    b: "Rose",
-    c: "Lily",
-  },
-  {
-    q: "Who was the first woman to fly solo across the Atlantic Ocean?",
-    a: "Amelia Earhart",
-    b: "Bessie Coleman",
-    c: "Harriet Quimby",
-  },
-  {
-    q: "Which classical composer is known for 'Fur Elise' and 'Moonlight Sonata'?",
-    a: "Ludwig van Beethoven",
-    b: "Wolfgang Amadeus Mozart",
-    c: "Johann Sebastian Bach",
-  },
-  {
-    q: "In which year did the Berlin Wall fall, leading to the reunification of Germany?",
-    a: "1989",
-    b: "1991",
-    c: "1987",
-  },
-];
-
-function getRandomQuestion(): QuestionDTO {
-  const randomIndex = Math.floor(Math.random() * triviaQuestions.length);
-  return triviaQuestions[randomIndex];
-}
 
 const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p1Count = rooms[roomName].p1Count;
