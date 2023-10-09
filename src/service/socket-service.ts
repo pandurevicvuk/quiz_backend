@@ -14,6 +14,7 @@ import {
   SocketData,
 } from "../utils/interfaces";
 import { log } from "console";
+import questionServiceEn from "./question-service-en";
 
 var queue: PlayerDTO[] = [];
 var rooms: any = {};
@@ -155,12 +156,9 @@ const createGameRoom = async (
   const sortedUserIds = [p1.id, p2.id].sort();
   const roomName = sortedUserIds.join("_");
 
-  //logic for retrieving not answered questions for players
-  //for now dummy data is used
-  //...
-
+  const questions = await questionServiceEn.getGameQuestions(p1.id, p2.id);
   const room: RoomDTO = {
-    name: roomName,
+    name: [p1.id, p2.id].sort().join("_"),
     initTime: new Date(),
     count: 1,
     p1Count: 0,
@@ -170,68 +168,7 @@ const createGameRoom = async (
     p1answer: null,
     p2answer: null,
     timer: null,
-    questions: [
-      {
-        q: "Who wrote the famous play 'Romeo and Juliet'?",
-        a: "William Shakespeare",
-        b: "Charles Dickens",
-        c: "Jane Austen",
-      },
-      {
-        q: "What year did the Titanic sink?",
-        a: "1912",
-        b: "1920",
-        c: "1905",
-      },
-      {
-        q: "Which U.S. president issued the Emancipation Proclamation?",
-        a: "Abraham Lincoln",
-        b: "George Washington",
-        c: "Thomas Jefferson",
-      },
-      {
-        q: "Which Beatles album is often considered their masterpiece?",
-        a: "Sgt. Pepper's Lonely Hearts Club Band",
-        b: "Abbey Road",
-        c: "Revolver",
-      },
-      {
-        q: "Who was known as the 'King of Pop'?",
-        a: "Michael Jackson",
-        b: "Elvis Presley",
-        c: "Frank Sinatra",
-      },
-      {
-        q: "Who wrote the famous play 'Romeo and Juliet'?",
-        a: "William Shakespeare",
-        b: "Charles Dickens",
-        c: "Jane Austen",
-      },
-      {
-        q: "What year did the Titanic sink?",
-        a: "1912",
-        b: "1920",
-        c: "1905",
-      },
-      {
-        q: "Which U.S. president issued the Emancipation Proclamation?",
-        a: "Abraham Lincoln",
-        b: "George Washington",
-        c: "Thomas Jefferson",
-      },
-      {
-        q: "Which Beatles album is often considered their masterpiece?",
-        a: "Sgt. Pepper's Lonely Hearts Club Band",
-        b: "Abbey Road",
-        c: "Revolver",
-      },
-      {
-        q: "Who was known as the 'King of Pop'?",
-        a: "Michael Jackson",
-        b: "Elvis Presley",
-        c: "Frank Sinatra",
-      },
-    ],
+    questions: questions,
   };
   rooms[roomName] = room;
 

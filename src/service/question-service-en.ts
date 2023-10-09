@@ -24,10 +24,11 @@ const getGameQuestions = async (
   );
 
   const unansweredQuestionsList = await db.QuestionsEn.findAll({
-    attributes: ["question_id"],
+    attributes: ["q", "a", "b", "c"],
     where: { id: { [Op.notIn]: combinedAnsweredQuestions } },
     order: sequelize.random(),
     limit: limit,
+    raw: true,
   });
 
   const additionalQuestionsCount = limit - unansweredQuestionsList.length;
@@ -68,7 +69,9 @@ const getGameQuestions = async (
   );
 
   const additionalQuestionsList = await db.QuestionsEn.findAll({
+    attributes: ["q", "a", "b", "c"],
     where: { id: additionalQuestionsIdList },
+    raw: true,
   });
   // Combine the unanswered and answered questions
   return [...unansweredQuestionsList, ...additionalQuestionsList];
@@ -116,7 +119,7 @@ const getUnanswered = async (userId: number): Promise<number[]> => {
   });
 
   const unansweredQuestionsIdList = await db.QuestionsEn.findAll({
-    attributes: ["question_id"],
+    attributes: ["id"],
     where: { id: { [Op.notIn]: player.questions } },
     order: sequelize.random(),
     limit: limit,
