@@ -27,13 +27,16 @@ export function initializeSocket(server: any) {
   >(server, { cors: { origin: "*" } });
 
   io.on("connection", async (socket) => {
-    const { id } = socket.handshake.query;
+    var { id } = socket.handshake.query;
     if (!id) return socket.disconnect();
 
-    //logic to get player from DB
+    const playerId = id as unknown as number;
+    if (queue.some((player) => player.id === playerId)) return;
+    log("CONNECTED: ", id);
 
+    //TO-DO logic to get player from DB
     const player: PlayerDTO = {
-      id: id as unknown as number,
+      id: playerId,
       name: `Ime ${queue.length + 1}`,
       photo:
         queue.length === 0
@@ -46,10 +49,11 @@ export function initializeSocket(server: any) {
     queue.push(player);
 
     socket.on("disconnect", (reason) => {
+      log("DISCONNECTED: ", socket.data);
+
       const opponentSocket = io.sockets.sockets.get(
         socket.data.opponentSocketId
       );
-
       if (
         opponentSocket &&
         opponentSocket.connected &&
@@ -88,7 +92,7 @@ export function initializeSocket(server: any) {
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
-      if (rooms[init.room.name].count >= 10) {
+      if (rooms[init.room.name].count > 10) {
         return endGame(init.room.name, p1, p2);
       }
 
@@ -119,7 +123,7 @@ export function initializeSocket(server: any) {
       p1.socket.emit("round_result", result.p1);
       p2.socket.emit("round_result", result.p2);
       await new Promise((resolve) => setTimeout(resolve, 4000));
-      if (rooms[init.room.name].count >= 10) {
+      if (rooms[init.room.name].count > 10) {
         return endGame(init.room.name, p1, p2);
       }
 
@@ -233,6 +237,8 @@ const createGameRoom = async (
 
   p1.socket.data.roomName = room.name;
   p1.socket.data.opponentSocketId = p2.socket.id;
+  p1.socket.data.userId = p1.id;
+  p1.socket.data.opponentId = p2.id;
   p1.socket.emit("game_start", {
     t: "RED",
     rn: room.name,
@@ -243,6 +249,8 @@ const createGameRoom = async (
   });
   p2.socket.data.roomName = room.name;
   p2.socket.data.opponentSocketId = p1.socket.id;
+  p2.socket.data.userId = p2.id;
+  p2.socket.data.opponentId = p1.id;
   p2.socket.emit("game_start", {
     t: "BLUE",
     rn: room.name,
@@ -252,6 +260,8 @@ const createGameRoom = async (
     pp: p2.photo,
   });
   await new Promise((resolve) => setTimeout(resolve, 8000));
+  log("ROOM NAME:", room.name);
+  log("ROOM:", room);
   const question = rooms[room.name].questions.pop();
   p1.socket.emit("round_question", { ...question, qc: 1 });
   p2.socket.emit("round_question", { ...question, qc: 1 });
