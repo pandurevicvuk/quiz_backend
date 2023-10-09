@@ -1,7 +1,7 @@
 import { config } from "../config/config";
 import { Sequelize, Dialect } from "sequelize";
 
-const database = new Sequelize(
+const sequelize = new Sequelize(
   config.database.database!,
   config.database.username!,
   config.database.password!,
@@ -13,4 +13,4 @@ const database = new Sequelize(
   }
 );
 
-export { database };
+export { sequelize };

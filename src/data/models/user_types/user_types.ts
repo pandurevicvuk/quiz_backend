@@ -1,7 +1,7 @@
-import sequelize from "../../sequelize";
-import { Model, DataTypes, Optional } from "sequelize";
-import { UserTypeAttributes } from "./user_type.def";
 import { User } from "../users/users";
+import { sequelize } from "../../sequelize";
+import { UserTypeAttributes } from "./user_type.def";
+import { Model, DataTypes, Optional } from "sequelize";
 
 export class UserType
   extends Model<UserTypeAttributes, Optional<UserTypeAttributes, "id">>

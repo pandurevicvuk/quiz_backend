@@ -1,4 +1,4 @@
-import sequelize from "../../sequelize";
+import { sequelize } from "../../sequelize";
 import { QuestionAttributes } from "./questions.def";
 import { DataTypes, Model, Optional } from "sequelize";
 

@@ -1,7 +1,6 @@
-import { Model, DataTypes, Optional } from "sequelize";
-import sequelize from "../../sequelize";
+import { sequelize } from "../../sequelize";
 import { UserAttributes } from "./users.def";
-// import { Bank } from '../bank/bank';
+import { Model, DataTypes, Optional } from "sequelize";
 
 export class User
   extends Model<UserAttributes, Optional<UserAttributes, "id">>
