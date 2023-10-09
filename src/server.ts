@@ -22,6 +22,6 @@ app.use("/", async (req, res, next) => {
 app.use(errorMiddleware);
 
 server.listen(config.port, async () => {
-  await sequelize.sync({ alter: true });
+  //await sequelize.sync({ alter: true });
   Logger.info(`App is listening on port ${config.port}`);
 });

@@ -1,13 +1,14 @@
 import { db } from "../data/database";
 import { Op, Sequelize } from "sequelize";
 import { sequelize } from "../data/sequelize";
+import { QuestionEN } from "../data/models/questions/questions-en";
 
 const limit = 10;
 
 const getGameQuestions = async (
   player1Id: number,
   player2Id: number
-): Promise<number[]> => {
+): Promise<QuestionEN[]> => {
   //
   const [player1] = await db.QuestionsAnsweredEn.findOrCreate({
     where: { userId: player1Id },
@@ -22,15 +23,16 @@ const getGameQuestions = async (
     new Set([...player1.questions, ...player2.questions])
   );
 
-  const unansweredQuestionsIdList = await db.QuestionsEn.findAll({
-    attributes: ["question_id"],
+  const unansweredQuestionsList = await db.QuestionsEn.findAll({
+    attributes: ["q", "a", "b", "c"],
     where: { id: { [Op.notIn]: combinedAnsweredQuestions } },
     order: sequelize.random(),
     limit: limit,
-  }).then((result) => result.map((e) => e.getDataValue("id")));
+    raw: true,
+  });
 
-  const additionalQuestionsCount = limit - unansweredQuestionsIdList.length;
-  if (additionalQuestionsCount === 0) return unansweredQuestionsIdList;
+  const additionalQuestionsCount = limit - unansweredQuestionsList.length;
+  if (additionalQuestionsCount === 0) return unansweredQuestionsList;
 
   // Adding additional questions that were answered first
   // Alternately - first half from player1, second half from player2
@@ -66,8 +68,13 @@ const getGameQuestions = async (
     { where: { userId: player2Id } }
   );
 
+  const additionalQuestionsList = await db.QuestionsEn.findAll({
+    attributes: ["q", "a", "b", "c"],
+    where: { id: additionalQuestionsIdList },
+    raw: true,
+  });
   // Combine the unanswered and answered questions
-  return [...unansweredQuestionsIdList, ...additionalQuestionsIdList];
+  return [...unansweredQuestionsList, ...additionalQuestionsList];
 };
 
 const updateAnswered = async (
@@ -112,7 +119,7 @@ const getUnanswered = async (userId: number): Promise<number[]> => {
   });
 
   const unansweredQuestionsIdList = await db.QuestionsEn.findAll({
-    attributes: ["question_id"],
+    attributes: ["id"],
     where: { id: { [Op.notIn]: player.questions } },
     order: sequelize.random(),
     limit: limit,
