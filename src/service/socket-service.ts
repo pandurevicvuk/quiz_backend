@@ -15,6 +15,7 @@ import {
 } from "../utils/interfaces";
 import { log } from "console";
 import questionServiceEn from "./question-service-en";
+import userService from "./user-service";
 
 var queue: PlayerDTO[] = [];
 var rooms: any = {};
@@ -35,14 +36,11 @@ export function initializeSocket(server: any) {
     if (queue.some((player) => player.id === playerId)) return;
     log("CONNECTED: ", id);
 
-    //TO-DO logic to get player from DB
+    const user = await userService.getById(playerId);
     const player: PlayerDTO = {
-      id: playerId,
-      name: `Ime ${queue.length + 1}`,
-      photo:
-        queue.length === 0
-          ? "https://picsum.photos/250?image=9"
-          : "https://picsum.photos/250?image=24",
+      id: user.id,
+      name: user.firstName,
+      photo: user.photo || "",
       socket: socket,
     };
 
