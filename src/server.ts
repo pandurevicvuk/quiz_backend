@@ -3,12 +3,10 @@ import "dotenv/config";
 import cors from "cors";
 import http from "http";
 import express from "express";
-import userRouter from "./routes/user-router";
 import errorMiddleware from "./middleware/error-middleware";
-import healthCheckRouter from "./routes/health-check-router";
 
 import { Logger } from "./utils/logger";
-import { initializeSocket } from "./service/game-service";
+import { initializeSocket } from "./service/socket-service";
 
 const app = express();
 app.use(express.json());
@@ -16,8 +14,9 @@ app.use(cors());
 const server = http.createServer(app);
 initializeSocket(server);
 
-app.use("/health", healthCheckRouter);
-app.use("/api/user", userRouter);
+app.use("/", (req, res, next) => {
+  res.status(200).send("SERVER IS UP!");
+});
 
 app.use(errorMiddleware);
 server.listen(process.env.PORT as String, () => {
