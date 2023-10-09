@@ -1,5 +1,5 @@
-import sequelize from "../../sequelize";
 import { User } from "../users/users";
+import { sequelize } from "../../sequelize";
 import { Model, DataTypes, Optional } from "sequelize";
 import { QuestionsReportedAttributes } from "./questions-reported.def";
 
