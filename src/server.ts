@@ -1,14 +1,13 @@
 import "dotenv/config";
-
 import cors from "cors";
 import http from "http";
 import express from "express";
-import userRouter from "./routes/user-router";
 import errorMiddleware from "./middleware/error-middleware";
-import healthCheckRouter from "./routes/health-check-router";
 
 import { Logger } from "./utils/logger";
-import { initializeSocket } from "./service/game-service";
+import { config } from "./config/config";
+import { database } from "./data/sequelize";
+import { initializeSocket } from "./service/socket-service";
 
 const app = express();
 app.use(express.json());
@@ -16,10 +15,13 @@ app.use(cors());
 const server = http.createServer(app);
 initializeSocket(server);
 
-app.use("/health", healthCheckRouter);
-app.use("/api/user", userRouter);
+app.use("/", async (req, res, next) => {
+  res.status(200).json("SERVER IS UP!");
+});
 
 app.use(errorMiddleware);
-server.listen(process.env.PORT as String, () => {
-  Logger.info(`App is listening on port ${process.env.PORT}`);
+
+server.listen(config.port, async () => {
+  await database.sync({ alter: true });
+  Logger.info(`App is listening on port ${config.port}`);
 });
