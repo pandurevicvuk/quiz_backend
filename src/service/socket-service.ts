@@ -30,6 +30,7 @@ export function initializeSocket(server: any) {
 
   io.on("connection", async (socket) => {
     var { id } = socket.handshake.query;
+    log("CONN: ", id);
     if (!id) return socket.disconnect();
 
     const playerId = id as unknown as number;
@@ -49,24 +50,29 @@ export function initializeSocket(server: any) {
 
     socket.on("disconnect", (reason) => {
       log("DISCONNECTED: ", socket.data);
-
-      const opponentSocket = io.sockets.sockets.get(
-        socket.data.opponentSocketId
-      );
-      if (
-        opponentSocket &&
-        opponentSocket.connected &&
-        reason == "client namespace disconnect"
-      ) {
-        opponentSocket.emit("game_end", {
-          message: "OPPONENT_LEFT",
-          ps: 0,
-          os: 0,
-        });
-        opponentSocket.disconnect();
-        clearTimeout(rooms[socket.data.roomName].timer);
-        delete rooms[socket.data.roomName];
-      }
+      // //IN QUEUE
+      // if (queue.some((player) => player.id === playerId)) {
+      //   queue = queue.filter((player) => player.id !== playerId);
+      //   return;
+      // }
+      // //IN GAME
+      // const opponentSocket = io.sockets.sockets.get(
+      //   socket.data.opponentSocketId
+      // );
+      // if (
+      //   opponentSocket &&
+      //   opponentSocket.connected &&
+      //   reason == "client namespace disconnect"
+      // ) {
+      //   opponentSocket.emit("game_end", {
+      //     message: "OPPONENT_LEFT",
+      //     ps: 0,
+      //     os: 0,
+      //   });
+      //   opponentSocket.disconnect();
+      //   clearTimeout(rooms[socket.data.roomName].timer);
+      //   delete rooms[socket.data.roomName];
+      // }
     });
 
     if (queue.length < 2) return;
@@ -317,8 +323,6 @@ const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
     });
   }
 
-  p1.socket.disconnect(true);
-  p2.socket.disconnect(true);
   clearTimeout(rooms[roomName].timer);
   delete rooms[roomName];
 };
