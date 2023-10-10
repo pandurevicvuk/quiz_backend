@@ -2,6 +2,7 @@ import { User } from "../users/users";
 import { sequelize } from "../../sequelize";
 import { Model, DataTypes, Optional } from "sequelize";
 import { QuestionsReportedAttributes } from "./questions-reported.def";
+import { QuestionEN } from "../questions/questions-en";
 
 export class QuestionsReportedEN
   extends Model<
@@ -27,7 +28,6 @@ const instance = QuestionsReportedEN.init(
     questionId: {
       field: "question_id",
       type: DataTypes.INTEGER,
-      primaryKey: true,
     },
     comment: {
       field: "comment",
@@ -47,11 +47,13 @@ const instance = QuestionsReportedEN.init(
     updatedAt: false,
   }
 );
-User.hasMany(QuestionsReportedEN, {
-  foreignKey: "userId",
-  onDelete: "cascade",
-});
 QuestionsReportedEN.belongsTo(User, {
   foreignKey: "userId",
+  targetKey: "id",
 });
+QuestionsReportedEN.belongsTo(QuestionEN, {
+  foreignKey: "questionId",
+  targetKey: "id",
+});
+
 export { instance };

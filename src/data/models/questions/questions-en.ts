@@ -1,4 +1,5 @@
 import { sequelize } from "../../sequelize";
+import { QuestionsReportedEN } from "../questions_reported/questions-reported-en";
 import { QuestionAttributes } from "./questions.def";
 import { DataTypes, Model, Optional } from "sequelize";
 
@@ -30,7 +31,7 @@ const instance = QuestionEN.init(
   },
   {
     sequelize,
-    tableName: "question_en",
+    tableName: "questions_en",
     freezeTableName: true,
     createdAt: false,
     updatedAt: false,

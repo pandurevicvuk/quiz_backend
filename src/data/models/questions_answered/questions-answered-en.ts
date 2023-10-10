@@ -35,6 +35,4 @@ const instance = QuestionAnsweredEN.init(
     updatedAt: false,
   }
 );
-User.hasOne(QuestionAnsweredEN, { foreignKey: "userId", onDelete: "cascade" });
-QuestionAnsweredEN.belongsTo(User, { foreignKey: "userId" });
 export { instance };
