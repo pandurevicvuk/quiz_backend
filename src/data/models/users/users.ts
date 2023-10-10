@@ -1,4 +1,8 @@
 import { sequelize } from "../../sequelize";
+import { QuestionEN } from "../questions/questions-en";
+import { QuestionAnsweredEN } from "../questions_answered/questions-answered-en";
+import { QuestionsReportedEN } from "../questions_reported/questions-reported-en";
+import { UserType } from "../user_types/user_types";
 import { UserAttributes } from "./users.def";
 import { Model, DataTypes, Optional } from "sequelize";
 
@@ -77,4 +81,13 @@ const instance = User.init(
     createdAt: false,
   }
 );
+
+UserType.hasMany(User, { foreignKey: "typeId" });
+User.belongsTo(UserType, { foreignKey: "typeId" });
+User.hasOne(QuestionAnsweredEN, { foreignKey: "userId", onDelete: "cascade" });
+User.hasMany(QuestionsReportedEN, {
+  foreignKey: "userId",
+  onDelete: "cascade",
+});
+
 export { instance };

@@ -38,7 +38,4 @@ const instance = UserType.init(
   }
 );
 
-User.belongsTo(UserType, { foreignKey: "typeId" });
-UserType.hasMany(User, { foreignKey: "typeId" });
-
 export { instance };

@@ -16,12 +16,17 @@ const server = http.createServer(app);
 initializeSocket(server);
 
 app.use("/", async (req, res, next) => {
-  res.status(200).json("SERVER IS UP!");
+  try {
+    res.status(200).json("SERVER IS UP!");
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use(errorMiddleware);
 
 server.listen(config.port, async () => {
-  //await sequelize.sync({ alter: true });
+  await sequelize.sync({ force: true });
+  Logger.info(`Database synchronized.`);
   Logger.info(`App is listening on port ${config.port}`);
 });
