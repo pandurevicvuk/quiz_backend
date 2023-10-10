@@ -47,10 +47,7 @@ const instance = QuestionsReportedEN.init(
     updatedAt: false,
   }
 );
-QuestionsReportedEN.belongsTo(User, {
-  foreignKey: "userId",
-  targetKey: "id",
-});
+
 QuestionsReportedEN.belongsTo(QuestionEN, {
   foreignKey: "questionId",
   targetKey: "id",
