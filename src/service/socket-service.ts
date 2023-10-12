@@ -175,42 +175,6 @@ const startGame = async (
   return { room: room, question: question };
 };
 
-const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
-  const p1Count = rooms[roomName].p1Count;
-  const p2Count = rooms[roomName].p2Count;
-
-  //DRAW
-  if (p1Count === p2Count) {
-    const result = {
-      message: "DRAW",
-      ps: p1Count,
-      os: p2Count,
-    };
-    p1.socket.emit("game_end", result);
-    p2.socket.emit("game_end", result);
-    clearTimeout(rooms[roomName].timer!);
-    delete rooms[roomName];
-    return;
-  }
-
-  //VICTORY/DEFEAT
-  p1.socket.emit("game_end", {
-    message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
-    ps: p1Count,
-    os: p2Count,
-  });
-  p2.socket.emit("game_end", {
-    message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
-    ps: p2Count,
-    os: p1Count,
-  });
-
-  clearTimeout(rooms[roomName].timer!);
-  delete rooms[roomName];
-};
-
-//ROUND
-
 const getResultScenario = (room: RoomDTO): ResultScenario => {
   //NEITHER ANSWERED
   if (!room.p1Time && !room.p2Time) return ResultScenario.BOTH_NOT_ANSWERED;
@@ -393,4 +357,38 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   rooms[room.name].initTime = new Date();
 };
 
+<<<<<<< HEAD
+=======
+const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
+  const p1Count = rooms[roomName].p1Count;
+  const p2Count = rooms[roomName].p2Count;
+  if (p1Count === p2Count) {
+    p1.socket.emit("game_end", {
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
+    p2.socket.emit("game_end", {
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
+  } else {
+    p1.socket.emit("game_end", {
+      message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
+      ps: p1Count,
+      os: p2Count,
+    });
+    p2.socket.emit("game_end", {
+      message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
+      ps: p2Count,
+      os: p1Count,
+    });
+  }
+
+  clearTimeout(rooms[roomName].timer);
+  delete rooms[roomName];
+};
+
+>>>>>>> 291d4ff (added round scenario test)
 export { getResultScenario };
