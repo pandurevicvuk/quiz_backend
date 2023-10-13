@@ -14,7 +14,7 @@ import {
 } from "../utils/interfaces";
 
 var queue: PlayerDTO[] = [];
-var rooms: any = {};
+var rooms: { [key: string]: RoomDTO } = {};
 
 export function initializeSocket(server: any) {
   const io = new Server<
@@ -26,7 +26,6 @@ export function initializeSocket(server: any) {
 
   io.on("connection", async (socket) => {
     var { id } = socket.handshake.query;
-    log("CONN: ", id);
     if (!id) return socket.disconnect();
 
     const playerId = id as unknown as number;
@@ -179,31 +178,34 @@ const startGame = async (
 const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
   const p1Count = rooms[roomName].p1Count;
   const p2Count = rooms[roomName].p2Count;
+
+  //DRAW
   if (p1Count === p2Count) {
-    p1.socket.emit("game_end", {
+    const result = {
       message: "DRAW",
       ps: p1Count,
       os: p2Count,
-    });
-    p2.socket.emit("game_end", {
-      message: "DRAW",
-      ps: p1Count,
-      os: p2Count,
-    });
-  } else {
-    p1.socket.emit("game_end", {
-      message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
-      ps: p1Count,
-      os: p2Count,
-    });
-    p2.socket.emit("game_end", {
-      message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
-      ps: p2Count,
-      os: p1Count,
-    });
+    };
+    p1.socket.emit("game_end", result);
+    p2.socket.emit("game_end", result);
+    clearTimeout(rooms[roomName].timer!);
+    delete rooms[roomName];
+    return;
   }
 
-  clearTimeout(rooms[roomName].timer);
+  //VICTORY/DEFEAT
+  p1.socket.emit("game_end", {
+    message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
+    ps: p1Count,
+    os: p2Count,
+  });
+  p2.socket.emit("game_end", {
+    message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
+    ps: p2Count,
+    os: p1Count,
+  });
+
+  clearTimeout(rooms[roomName].timer!);
   delete rooms[roomName];
 };
 
@@ -267,52 +269,64 @@ const endRound = async (
   player1: PlayerDTO,
   player2: PlayerDTO
 ): Promise<void> => {
-  clearTimeout(rooms[room.name].timer);
+  const {
+    timer,
+    count,
+    p1Count,
+    p2Count,
+    initTime,
+    p1Time,
+    p2Time,
+    p1answer,
+    p2answer,
+  } = rooms[room.name];
+
+  clearTimeout(timer!);
 
   //SCORE UPDATE
   const scenario = getResultScenario(room);
   switch (scenario) {
     case ResultScenario.BOTH_INCORRECT:
-      log(`Q:${rooms[room.name].count} - BOTH_INCORRECT`);
-      if (rooms[room.name].p1Count > 0) rooms[room.name].p1Count -= 1;
-      if (rooms[room.name].p2Count > 0) rooms[room.name].p2Count -= 1;
+      log(`Q:${count} - BOTH_INCORRECT`);
+      if (p1Count > 0) rooms[room.name].p1Count -= 1;
+      if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
     case ResultScenario.P1_QUICKER_CORRECT:
-      log(`Q:${rooms[room.name].count} - P1_QUICKER_CORRECT`);
+      log(`Q:${count} - P1_QUICKER_CORRECT`);
       rooms[room.name].p1Count += 2;
       break;
     case ResultScenario.P2_QUICKER_CORRECT:
-      log(`Q:${rooms[room.name].count} - P2_QUICKER_CORRECT`);
+      log(`Q:${count} - P2_QUICKER_CORRECT`);
       rooms[room.name].p2Count += 2;
       break;
     case ResultScenario.P1_CORRECT_P2_INCORRECT:
-      log(`Q:${rooms[room.name].count} - P1_CORRECT_P2_INCORRECT`);
+      log(`Q:${count} - P1_CORRECT_P2_INCORRECT`);
       rooms[room.name].p1Count += 2;
-      if (rooms[room.name].p2Count > 0) rooms[room.name].p2Count -= 1;
+      if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
     case ResultScenario.P2_CORRECT_P1_INCORRECT:
-      log(`Q:${rooms[room.name].count} - P2_CORRECT_P1_INCORRECT`);
+      log(`Q:${count} - P2_CORRECT_P1_INCORRECT`);
       rooms[room.name].p2Count += 2;
-      if (rooms[room.name].p1Count > 0) rooms[room.name].p1Count -= 1;
+      if (p1Count > 0) rooms[room.name].p1Count -= 1;
       break;
     case ResultScenario.P1_CORRECT_P2_NOT_ANSWERED:
-      log(`Q:${rooms[room.name].count} - P1_CORRECT_P2_NOT_ANSWERED`);
+      log(`Q:${count} - P1_CORRECT_P2_NOT_ANSWERED`);
       rooms[room.name].p1Count += 2;
       break;
     case ResultScenario.P2_CORRECT_P1_NOT_ANSWERED:
-      log(`Q:${rooms[room.name].count} - P2_CORRECT_P1_NOT_ANSWERED`);
+      log(`Q:${count} - P2_CORRECT_P1_NOT_ANSWERED`);
       rooms[room.name].p2Count += 2;
       break;
     case ResultScenario.P1_INCORRECT_P2_NOT_ANSWERED:
-      log(`Q:${rooms[room.name].count} - P1_INCORRECT_P2_NOT_ANSWERED`);
-      if (rooms[room.name].p1Count > 0) rooms[room.name].p1Count -= 1;
+      log(`Q:${count} - P1_INCORRECT_P2_NOT_ANSWERED`);
+      if (p1Count > 0) rooms[room.name].p1Count -= 1;
       break;
     case ResultScenario.P2_INCORRECT_P1_NOT_ANSWERED:
-      log(`Q:${rooms[room.name].count} - P2_INCORRECT_P1_NOT_ANSWERED`);
-      if (rooms[room.name].p2Count > 0) rooms[room.name].p2Count -= 1;
+      log(`Q:${count} - P2_INCORRECT_P1_NOT_ANSWERED`);
+      if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
     case ResultScenario.BOTH_NOT_ANSWERED:
-      log(`Round:${rooms[room.name].count} - BOTH_NOT_ANSWERED`);
+      log(`Round:${count} - BOTH_NOT_ANSWERED`);
       //
       break;
   }
@@ -326,26 +340,26 @@ const endRound = async (
   var formattedP1Time;
   var formattedP2Time;
 
-  if (room.p1Time) {
-    const p1TimeDiff = differenceInMilliseconds(room.p1Time!, room.initTime);
+  if (p1Time) {
+    const p1TimeDiff = differenceInMilliseconds(p1Time, initTime);
     formattedP1Time = (p1TimeDiff / 1000).toFixed(2);
   }
-  if (room.p2Time) {
-    const p2TimeDiff = differenceInMilliseconds(room.p2Time, room.initTime);
+  if (p2Time) {
+    const p2TimeDiff = differenceInMilliseconds(p2Time, initTime);
     formattedP2Time = (p2TimeDiff / 1000).toFixed(2);
   }
 
   const p1: PlayerResultDTO = {
     pt: formattedP1Time || "10.00",
     ot: formattedP2Time || "10.00",
-    pa: room.p1answer!,
-    oa: room.p2answer!,
+    pa: p1answer!,
+    oa: p2answer!,
   };
   const p2: PlayerResultDTO = {
     pt: formattedP2Time || "10.00",
     ot: formattedP1Time || "10.00",
-    pa: room.p2answer!,
-    oa: room.p1answer!,
+    pa: p2answer!,
+    oa: p1answer!,
   };
 
   //reset room values
@@ -360,26 +374,19 @@ const endRound = async (
   player2.socket.emit("round_result", p2);
 };
 
+//TIMER
+
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
-  //remove previous timer
-  if (rooms[room.name].timer) clearTimeout(rooms[room.name].timer);
+  //
+  if (rooms[room.name].timer) clearTimeout(rooms[room.name].timer!); //CLEAR PREVIOUS TIMER
 
   const timer = setTimeout(async () => {
     await endRound(rooms[room.name], p1, p2);
     await new Promise((resolve) => setTimeout(resolve, 4000));
-
+    //
     if (rooms[room.name].count >= 10) return endGame(room.name, p1, p2);
-
-    const question = rooms[room.name].questions.pop();
-    p1.socket.emit("round_question", {
-      ...question,
-      qc: rooms[room.name].count,
-    });
-    p2.socket.emit("round_question", {
-      ...question,
-      qc: rooms[room.name].count,
-    });
-    startTimer(rooms[room.name], p1, p2);
+    //
+    startRound(room.name, p1, p2);
   }, 10000);
 
   rooms[room.name].timer = timer;
