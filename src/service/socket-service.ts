@@ -1,11 +1,10 @@
+import userService from "./user-service";
+import questionServiceEn from "./question-service-en";
+
+import { log } from "console";
 import { Server } from "socket.io";
-import {
-  GameInstructionDTO,
-  PlayerDTO,
-  PlayerResultDTO,
-  QuestionDTO,
-  RoomDTO,
-} from "../dto/game-dto";
+import { ResultScenario } from "../utils/enums";
+import { PlayerDTO, PlayerResultDTO, RoomDTO } from "../dto/game-dto";
 import { differenceInMilliseconds } from "date-fns";
 import {
   ClientToServerEvents,
@@ -13,9 +12,6 @@ import {
   ServerToClientEvents,
   SocketData,
 } from "../utils/interfaces";
-import { log } from "console";
-import questionServiceEn from "./question-service-en";
-import userService from "./user-service";
 
 var queue: PlayerDTO[] = [];
 var rooms: any = {};
@@ -81,79 +77,49 @@ export function initializeSocket(server: any) {
     const p2 = queue.shift();
     if (!p1 || !p2) return;
 
-    const init = await createGameRoom(p1, p2);
+    const init = await startGame(p1, p2);
 
     // HANDLE THE MESSAGE SENT BY P1
     p1.socket.on(init.room.name, async (data: string) => {
-      if (rooms[init.room.name].p1Time) return;
+      if (rooms[init.room.name].p1Time) return; //ALREADY ANSWERED
 
       rooms[init.room.name].p1Time = new Date();
       rooms[init.room.name].p1answer = data;
 
-      if (!rooms[init.room.name].p2Time) return;
-      //P1 ANSWERED LAST
+      if (!rooms[init.room.name].p2Time) return; //WAIT FOR OPPONENT ANSWER
 
-      const result = await getRoundResult(rooms[init.room.name]);
-      p1.socket.emit("round_result", result.p1);
-      p2.socket.emit("round_result", result.p2);
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await endRound(rooms[init.room.name], p1, p2);
+
       if (rooms[init.room.name].count > 10) {
         return endGame(init.room.name, p1, p2);
       }
 
-      const question = rooms[init.room.name].questions.pop();
-      p1.socket.emit("round_question", {
-        ...question,
-        qc: rooms[init.room.name].count,
-      });
-      p2.socket.emit("round_question", {
-        ...question,
-        qc: rooms[init.room.name].count,
-      });
-      startTimer(rooms[init.room.name], p1, p2);
+      await startRound(init.room.name, p1, p2);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
     p2.socket.on(init.room.name, async (data: string) => {
-      if (rooms[init.room.name].p2Time) return;
+      if (rooms[init.room.name].p2Time) return; //ALREADY ANSWERED
 
       rooms[init.room.name].p2Time = new Date();
       rooms[init.room.name].p2answer = data;
 
-      if (!rooms[init.room.name].p1Time) return;
-      //P2 ANSWERED LAST
+      if (!rooms[init.room.name].p1Time) return; //WAIT FOR OPPONENT ANSWER
 
-      const result = await getRoundResult(rooms[init.room.name]);
+      await endRound(rooms[init.room.name], p1, p2);
 
-      p1.socket.emit("round_result", result.p1);
-      p2.socket.emit("round_result", result.p2);
-      await new Promise((resolve) => setTimeout(resolve, 4000));
       if (rooms[init.room.name].count > 10) {
         return endGame(init.room.name, p1, p2);
       }
 
-      const question = rooms[init.room.name].questions.pop();
-      p1.socket.emit("round_question", {
-        ...question,
-        qc: rooms[init.room.name].count,
-      });
-      p2.socket.emit("round_question", {
-        ...question,
-        qc: rooms[init.room.name].count,
-      });
-
-      startTimer(rooms[init.room.name], p1, p2);
+      await startRound(init.room.name, p1, p2);
     });
   });
 }
 
-//
-//
-//
-//
-//
+//GAME
 
-const createGameRoom = async (
+const startGame = async (
   p1: PlayerDTO,
   p2: PlayerDTO
 ): Promise<{ room: RoomDTO; question: any }> => {
@@ -210,18 +176,38 @@ const createGameRoom = async (
   return { room: room, question: question };
 };
 
-enum ResultScenario {
-  BOTH_INCORRECT,
-  BOTH_NOT_ANSWERED,
-  P1_QUICKER_CORRECT,
-  P2_QUICKER_CORRECT,
-  P1_CORRECT_P2_INCORRECT,
-  P2_CORRECT_P1_INCORRECT,
-  P1_CORRECT_P2_NOT_ANSWERED,
-  P2_CORRECT_P1_NOT_ANSWERED,
-  P1_INCORRECT_P2_NOT_ANSWERED,
-  P2_INCORRECT_P1_NOT_ANSWERED,
-}
+const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
+  const p1Count = rooms[roomName].p1Count;
+  const p2Count = rooms[roomName].p2Count;
+  if (p1Count === p2Count) {
+    p1.socket.emit("game_end", {
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
+    p2.socket.emit("game_end", {
+      message: "DRAW",
+      ps: p1Count,
+      os: p2Count,
+    });
+  } else {
+    p1.socket.emit("game_end", {
+      message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
+      ps: p1Count,
+      os: p2Count,
+    });
+    p2.socket.emit("game_end", {
+      message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
+      ps: p2Count,
+      os: p1Count,
+    });
+  }
+
+  clearTimeout(rooms[roomName].timer);
+  delete rooms[roomName];
+};
+
+//ROUND
 
 const getResultScenario = (room: RoomDTO): ResultScenario => {
   //NEITHER ANSWERED
@@ -263,7 +249,24 @@ const getResultScenario = (room: RoomDTO): ResultScenario => {
   return ResultScenario.BOTH_NOT_ANSWERED;
 };
 
-const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
+const startRound = async (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
+  const question = rooms[roomName].questions.pop();
+  p1.socket.emit("round_question", {
+    ...question,
+    qc: rooms[roomName].count,
+  });
+  p2.socket.emit("round_question", {
+    ...question,
+    qc: rooms[roomName].count,
+  });
+  startTimer(rooms[roomName], p1, p2);
+};
+
+const endRound = async (
+  room: RoomDTO,
+  player1: PlayerDTO,
+  player2: PlayerDTO
+): Promise<void> => {
   clearTimeout(rooms[room.name].timer);
 
   //SCORE UPDATE
@@ -352,10 +355,9 @@ const getRoundResult = async (room: RoomDTO): Promise<GameInstructionDTO> => {
   rooms[room.name].p1answer = null;
   rooms[room.name].p2answer = null;
 
-  return {
-    p1: p1,
-    p2: p2,
-  };
+  //
+  player1.socket.emit("round_result", p1);
+  player2.socket.emit("round_result", p2);
 };
 
 const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
@@ -363,9 +365,7 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   if (rooms[room.name].timer) clearTimeout(rooms[room.name].timer);
 
   const timer = setTimeout(async () => {
-    const result = await getRoundResult(rooms[room.name]);
-    p1.socket.emit("round_result", result.p1);
-    p2.socket.emit("round_result", result.p2);
+    await endRound(rooms[room.name], p1, p2);
     await new Promise((resolve) => setTimeout(resolve, 4000));
 
     if (rooms[room.name].count >= 10) return endGame(room.name, p1, p2);
@@ -386,33 +386,4 @@ const startTimer = (room: RoomDTO, p1: PlayerDTO, p2: PlayerDTO) => {
   rooms[room.name].initTime = new Date();
 };
 
-const endGame = (roomName: string, p1: PlayerDTO, p2: PlayerDTO) => {
-  const p1Count = rooms[roomName].p1Count;
-  const p2Count = rooms[roomName].p2Count;
-  if (p1Count === p2Count) {
-    p1.socket.emit("game_end", {
-      message: "DRAW",
-      ps: p1Count,
-      os: p2Count,
-    });
-    p2.socket.emit("game_end", {
-      message: "DRAW",
-      ps: p1Count,
-      os: p2Count,
-    });
-  } else {
-    p1.socket.emit("game_end", {
-      message: p1Count > p2Count ? "VICTORY" : "DEFEAT",
-      ps: p1Count,
-      os: p2Count,
-    });
-    p2.socket.emit("game_end", {
-      message: p2Count > p1Count ? "VICTORY" : "DEFEAT",
-      ps: p2Count,
-      os: p1Count,
-    });
-  }
-
-  clearTimeout(rooms[roomName].timer);
-  delete rooms[roomName];
-};
+export { getResultScenario };
