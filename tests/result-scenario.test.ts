@@ -1,8 +1,5 @@
 import { RoomDTO } from "../src/dto/game-dto";
-import {
-  ResultScenario,
-  getResultScenario,
-} from "../src/service/socket-service";
+import { getResultScenario } from "../src/service/socket-service";
 
 describe("getResultScenario", () => {
   test("BOTH_INCORRECT", async () => {
