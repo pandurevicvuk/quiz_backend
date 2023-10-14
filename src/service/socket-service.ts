@@ -61,7 +61,7 @@ export function initializeSocket(server: any) {
       ) {
         const room = rooms[socket.data.roomName];
         opponentSocket.emit("game_end", {
-          message: "OPPONENT_LEFT",
+          message: "OPPONENT LEFT",
           ps: room.count < 4 ? 0 : room.p1Count,
           os: 0,
         });
@@ -219,29 +219,29 @@ const getResultScenario = (room: RoomDTO): ResultScenario => {
 
     if (p1AnsweredA && p2AnsweredA) {
       return room.p1Time <= room.p2Time
-        ? ResultScenario.P1_QUICKER_CORRECT
-        : ResultScenario.P2_QUICKER_CORRECT;
+        ? ResultScenario.RED_QUICKER_CORRECT
+        : ResultScenario.BLUE_QUICKER_CORRECT;
     }
 
     if (p1AnsweredA && !p2AnsweredA) {
-      return ResultScenario.P1_CORRECT_P2_INCORRECT;
+      return ResultScenario.RED_CORRECT_BLUE_INCORRECT;
     }
     if (p2AnsweredA && !p1AnsweredA) {
-      return ResultScenario.P2_CORRECT_P1_INCORRECT;
+      return ResultScenario.BLUE_CORRECT_RED_INCORRECT;
     }
 
-    return ResultScenario.P2_CORRECT_P1_INCORRECT;
+    return ResultScenario.BLUE_CORRECT_RED_INCORRECT;
   }
   //ONLY P1 ANSWERED
   if (room.p1Time) {
     return room.p1answer === "A"
-      ? ResultScenario.P1_CORRECT_P2_NOT_ANSWERED
-      : ResultScenario.P1_INCORRECT_P2_NOT_ANSWERED;
+      ? ResultScenario.RED_CORRECT_BLUE_NOT_ANSWERED
+      : ResultScenario.RED_INCORRECT_BLUE_NOT_ANSWERED;
   }
   if (room.p2Time) {
     return room.p2answer === "A"
-      ? ResultScenario.P2_CORRECT_P1_NOT_ANSWERED
-      : ResultScenario.P2_INCORRECT_P1_NOT_ANSWERED;
+      ? ResultScenario.BLUE_CORRECT_RED_NOT_ANSWERED
+      : ResultScenario.BLUE_INCORRECT_RED_NOT_ANSWERED;
   }
 
   return ResultScenario.BOTH_NOT_ANSWERED;
@@ -287,37 +287,37 @@ const endRound = async (
       if (p1Count > 0) rooms[room.name].p1Count -= 1;
       if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
-    case ResultScenario.P1_QUICKER_CORRECT:
+    case ResultScenario.RED_QUICKER_CORRECT:
       log(`Q:${count} - P1_QUICKER_CORRECT`);
       rooms[room.name].p1Count += 2;
       break;
-    case ResultScenario.P2_QUICKER_CORRECT:
+    case ResultScenario.BLUE_QUICKER_CORRECT:
       log(`Q:${count} - P2_QUICKER_CORRECT`);
       rooms[room.name].p2Count += 2;
       break;
-    case ResultScenario.P1_CORRECT_P2_INCORRECT:
+    case ResultScenario.RED_CORRECT_BLUE_INCORRECT:
       log(`Q:${count} - P1_CORRECT_P2_INCORRECT`);
       rooms[room.name].p1Count += 2;
       if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
-    case ResultScenario.P2_CORRECT_P1_INCORRECT:
+    case ResultScenario.BLUE_CORRECT_RED_INCORRECT:
       log(`Q:${count} - P2_CORRECT_P1_INCORRECT`);
       rooms[room.name].p2Count += 2;
       if (p1Count > 0) rooms[room.name].p1Count -= 1;
       break;
-    case ResultScenario.P1_CORRECT_P2_NOT_ANSWERED:
+    case ResultScenario.RED_CORRECT_BLUE_NOT_ANSWERED:
       log(`Q:${count} - P1_CORRECT_P2_NOT_ANSWERED`);
       rooms[room.name].p1Count += 2;
       break;
-    case ResultScenario.P2_CORRECT_P1_NOT_ANSWERED:
+    case ResultScenario.BLUE_CORRECT_RED_NOT_ANSWERED:
       log(`Q:${count} - P2_CORRECT_P1_NOT_ANSWERED`);
       rooms[room.name].p2Count += 2;
       break;
-    case ResultScenario.P1_INCORRECT_P2_NOT_ANSWERED:
+    case ResultScenario.RED_INCORRECT_BLUE_NOT_ANSWERED:
       log(`Q:${count} - P1_INCORRECT_P2_NOT_ANSWERED`);
       if (p1Count > 0) rooms[room.name].p1Count -= 1;
       break;
-    case ResultScenario.P2_INCORRECT_P1_NOT_ANSWERED:
+    case ResultScenario.BLUE_INCORRECT_RED_NOT_ANSWERED:
       log(`Q:${count} - P2_INCORRECT_P1_NOT_ANSWERED`);
       if (p2Count > 0) rooms[room.name].p2Count -= 1;
       break;
