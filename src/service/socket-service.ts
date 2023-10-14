@@ -45,29 +45,30 @@ export function initializeSocket(server: any) {
 
     socket.on("disconnect", (reason) => {
       log("DISCONNECTED: ", socket.data);
-      // //IN QUEUE
-      // if (queue.some((player) => player.id === playerId)) {
-      //   queue = queue.filter((player) => player.id !== playerId);
-      //   return;
-      // }
-      // //IN GAME
-      // const opponentSocket = io.sockets.sockets.get(
-      //   socket.data.opponentSocketId
-      // );
-      // if (
-      //   opponentSocket &&
-      //   opponentSocket.connected &&
-      //   reason == "client namespace disconnect"
-      // ) {
-      //   opponentSocket.emit("game_end", {
-      //     message: "OPPONENT_LEFT",
-      //     ps: 0,
-      //     os: 0,
-      //   });
-      //   opponentSocket.disconnect();
-      //   clearTimeout(rooms[socket.data.roomName].timer);
-      //   delete rooms[socket.data.roomName];
-      // }
+      //IN QUEUE
+      if (queue.some((player) => player.id === playerId)) {
+        queue = queue.filter((player) => player.id !== playerId);
+        return;
+      }
+      //IN GAME
+      const opponentSocket = io.sockets.sockets.get(
+        socket.data.opponentSocketId
+      );
+      if (
+        opponentSocket &&
+        opponentSocket.connected &&
+        reason == "client namespace disconnect"
+      ) {
+        const room = rooms[socket.data.roomName];
+        opponentSocket.emit("game_end", {
+          message: "OPPONENT_LEFT",
+          ps: room.count < 4 ? 0 : room.p1Count,
+          os: 0,
+        });
+        // opponentSocket.disconnect(); TODO - Find out why this causes problems to mobile app?
+        clearTimeout(rooms[socket.data.roomName].timer!);
+        delete rooms[socket.data.roomName];
+      }
     });
 
     if (queue.length < 2) return;
