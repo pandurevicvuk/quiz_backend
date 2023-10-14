@@ -27,6 +27,7 @@ export type PlayerResultDTO = {
   pt: string | null;
   oa: string;
   ot: string | null;
+  scenario: string;
 };
 
 export type GameInstructionDTO = {

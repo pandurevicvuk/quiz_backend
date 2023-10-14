@@ -80,40 +80,39 @@ export function initializeSocket(server: any) {
     const init = await startGame(redPlayer, bluePlayer);
 
     // HANDLE THE MESSAGE SENT BY P1
-    redPlayer.socket.on(init.room.name, async (data: string) => {
-      if (rooms[init.room.name].redTime) return; //ALREADY ANSWERED
+    redPlayer.socket.on(init.name, async (data: string) => {
+      if (rooms[init.name].redTime) return; //ALREADY ANSWERED
 
-      rooms[init.room.name].redTime = new Date();
-      rooms[init.room.name].redAnswer = data;
+      rooms[init.name].redTime = new Date();
+      rooms[init.name].redAnswer = data;
 
-      if (!rooms[init.room.name].blueTime) return; //WAIT FOR OPPONENT ANSWER
+      if (!rooms[init.name].blueTime) return; //WAIT FOR OPPONENT ANSWER
 
-      await endRound(rooms[init.room.name], redPlayer, bluePlayer);
+      await endRound(rooms[init.name], redPlayer, bluePlayer);
 
-      if (rooms[init.room.name].count > 10) {
-        return endGame(init.room.name, redPlayer, bluePlayer);
+      if (rooms[init.name].count > 10) {
+        return endGame(init.name, redPlayer, bluePlayer);
       }
 
-      await startRound(init.room.name, redPlayer, bluePlayer);
+      await startRound(init.name, redPlayer, bluePlayer);
     });
 
     // HANDLE THE MESSAGE SENT BY P2
-    bluePlayer.socket.on(init.room.name, async (data: string) => {
-      if (rooms[init.room.name].blueTime) return; //ALREADY ANSWERED
+    bluePlayer.socket.on(init.name, async (data: string) => {
+      if (rooms[init.name].blueTime) return; //ALREADY ANSWERED
 
-      rooms[init.room.name].blueTime = new Date();
-      rooms[init.room.name].blueAnswer = data;
+      rooms[init.name].blueTime = new Date();
+      rooms[init.name].blueAnswer = data;
 
-      if (!rooms[init.room.name].redTime) return; //WAIT FOR OPPONENT ANSWER
+      if (!rooms[init.name].redTime) return; //WAIT FOR OPPONENT ANSWER
 
-      await endRound(rooms[init.room.name], redPlayer, bluePlayer);
+      await endRound(rooms[init.name], redPlayer, bluePlayer);
 
-      if (rooms[init.room.name].count > 10) {
-        return endGame(init.room.name, redPlayer, bluePlayer);
+      if (rooms[init.name].count > 10) {
+        return endGame(init.name, redPlayer, bluePlayer);
       }
-      redPlayer;
 
-      await startRound(init.room.name, redPlayer, bluePlayer);
+      await startRound(init.name, redPlayer, bluePlayer);
     });
   });
 }
@@ -122,7 +121,7 @@ export function initializeSocket(server: any) {
 const startGame = async (
   redPlayer: PlayerDTO,
   bluePlayer: PlayerDTO
-): Promise<{ room: RoomDTO; question: any }> => {
+): Promise<RoomDTO> => {
   const sortedUserIds = [redPlayer.id, bluePlayer.id].sort();
   const roomName = sortedUserIds.join("_");
 
@@ -176,7 +175,7 @@ const startGame = async (
   bluePlayer.socket.emit("round_question", { ...question, qc: 1 });
 
   startTimer(room, redPlayer, bluePlayer);
-  return { room: room, question: question };
+  return room;
 };
 
 const endGame = (
@@ -360,12 +359,14 @@ const endRound = async (
   const redPlayer: PlayerResultDTO = {
     pt: formattedP1Time || "10.00",
     ot: formattedP2Time || "10.00",
+    scenario: ResultScenario[scenario],
     pa: redAnswer!,
     oa: blueAnswer!,
   };
   const bluePlayer: PlayerResultDTO = {
     pt: formattedP2Time || "10.00",
     ot: formattedP1Time || "10.00",
+    scenario: ResultScenario[scenario],
     pa: blueAnswer!,
     oa: redAnswer!,
   };
@@ -380,6 +381,7 @@ const endRound = async (
   //
   player1.socket.emit("round_result", redPlayer);
   player2.socket.emit("round_result", bluePlayer);
+  await new Promise((resolve) => setTimeout(resolve, 4000));
 };
 
 //TIMER
@@ -394,12 +396,12 @@ const startTimer = (
 
   const timer = setTimeout(async () => {
     await endRound(rooms[room.name], redPlayer, bluePlayer);
-    await new Promise((resolve) => setTimeout(resolve, 4000));
+
     //
     if (rooms[room.name].count >= 10)
       return endGame(room.name, redPlayer, bluePlayer);
     //
-    startRound(room.name, redPlayer, bluePlayer);
+    await startRound(room.name, redPlayer, bluePlayer);
   }, 10000);
 
   rooms[room.name].timer = timer;
