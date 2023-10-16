@@ -54,10 +54,11 @@ export function initializeSocket(server: any) {
       const opponentSocket = io.sockets.sockets.get(
         socket.data.opponentSocketId
       );
+      //LEFT GAME
       if (
         opponentSocket &&
         opponentSocket.connected &&
-        reason == "client namespace disconnect"
+        rooms[socket.data.roomName] != null
       ) {
         const room = rooms[socket.data.roomName];
         opponentSocket.emit("game_end", {
@@ -357,18 +358,22 @@ const endRound = async (
   }
 
   const redPlayer: PlayerResultDTO = {
+    scenario: ResultScenario[scenario],
     pt: formattedP1Time || "10.00",
     ot: formattedP2Time || "10.00",
-    scenario: ResultScenario[scenario],
     pa: redAnswer!,
     oa: blueAnswer!,
+    pc: rooms[room.name].redCount,
+    oc: rooms[room.name].blueCount,
   };
   const bluePlayer: PlayerResultDTO = {
+    scenario: ResultScenario[scenario],
     pt: formattedP2Time || "10.00",
     ot: formattedP1Time || "10.00",
-    scenario: ResultScenario[scenario],
     pa: blueAnswer!,
     oa: redAnswer!,
+    pc: rooms[room.name].blueCount,
+    oc: rooms[room.name].redCount,
   };
 
   //reset room values
@@ -381,7 +386,7 @@ const endRound = async (
   //
   player1.socket.emit("round_result", redPlayer);
   player2.socket.emit("round_result", bluePlayer);
-  await new Promise((resolve) => setTimeout(resolve, 4000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 };
 
 //TIMER
