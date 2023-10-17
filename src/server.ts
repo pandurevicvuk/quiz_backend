@@ -6,7 +6,6 @@ import errorMiddleware from "./middleware/error-middleware";
 
 import { Logger } from "./utils/logger";
 import { config } from "./config/config";
-import { sequelize } from "./data/sequelize";
 import { initializeSocket } from "./service/socket-service";
 
 const app = express();
@@ -26,7 +25,5 @@ app.use("/", async (req, res, next) => {
 app.use(errorMiddleware);
 
 server.listen(config.port, async () => {
-  // await sequelize.sync({ alter: true });
-  Logger.info(`Database synchronized.`);
   Logger.info(`App is listening on port ${config.port}`);
 });
