@@ -12,12 +12,12 @@ export type RoomDTO = {
   name: string;
   initTime: Date;
   count: number;
-  p1Count: number;
-  p2Count: number;
-  p1Time: Date | null;
-  p2Time: Date | null;
-  p1answer: string | null;
-  p2answer: string | null;
+  redCount: number;
+  blueCount: number;
+  redTime: Date | null;
+  blueTime: Date | null;
+  redAnswer: string | null;
+  blueAnswer: string | null;
   timer: NodeJS.Timeout | null;
   questions: QuestionDTO[];
 };
@@ -27,6 +27,9 @@ export type PlayerResultDTO = {
   pt: string | null;
   oa: string;
   ot: string | null;
+  pc: number;
+  oc: number;
+  scenario: string;
 };
 
 export type GameInstructionDTO = {
