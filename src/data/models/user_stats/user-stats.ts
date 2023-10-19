@@ -4,7 +4,10 @@ import { UserStatsAttributes } from "./user-stats.def";
 import { Model, DataTypes, Optional } from "sequelize";
 
 export class UserStats
-  extends Model<UserStatsAttributes, Optional<UserStatsAttributes, "id">>
+  extends Model<
+    UserStatsAttributes,
+    Optional<UserStatsAttributes, "id" | "wins" | "losses" | "draws" | "coins">
+  >
   implements UserStatsAttributes
 {
   public id!: number;
@@ -25,21 +28,25 @@ const instance = UserStats.init(
       field: "wins",
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
     losses: {
       field: "losses",
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
     draws: {
       field: "draws",
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
     coins: {
       field: "coins",
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
     },
   },
   {

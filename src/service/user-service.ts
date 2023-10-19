@@ -29,6 +29,7 @@ const createGuest = async (): Promise<any> => {
           typeId: 1,
         }
       );
+      await db.UserStats.create({ id: id });
 
       return { id, firstName, lastName, username, photo };
     } catch (error) {
