@@ -1,5 +1,6 @@
 import { config } from "../config/config";
 import { Sequelize, Dialect } from "sequelize";
+import { Logger } from "../utils/logger";
 
 const sequelize = new Sequelize(
   config.database.database!,
@@ -12,5 +13,11 @@ const sequelize = new Sequelize(
     port: config.database.port! as unknown as number,
   }
 );
+
+(async () => {
+  await sequelize.sync({ alter: false });
+
+  Logger.info("Database sync completed.");
+})();
 
 export { sequelize };

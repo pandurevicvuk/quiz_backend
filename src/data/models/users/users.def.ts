@@ -7,7 +7,7 @@ export interface UserAttributes {
   lastName: string;
   username: string;
   email?: string;
-  google_token?: string;
+  googleId?: string;
   photo?: string;
   typeId: number;
 }

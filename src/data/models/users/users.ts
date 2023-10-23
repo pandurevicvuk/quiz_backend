@@ -16,7 +16,7 @@ export class User
   public lastName!: string;
   public username!: string;
   public email?: string;
-  public google_token?: string;
+  public googleId?: string;
   public photo?: string;
   public typeId!: number;
 }
@@ -57,8 +57,8 @@ const instance = User.init(
       allowNull: true,
       unique: true,
     },
-    google_token: {
-      field: "google_token",
+    googleId: {
+      field: "google_id",
       type: DataTypes.STRING(255),
       allowNull: true,
     },
@@ -79,6 +79,11 @@ const instance = User.init(
     freezeTableName: true,
     updatedAt: false,
     createdAt: false,
+    defaultScope: {
+      attributes: {
+        exclude: ["typeId", "active", "googleId", "email"],
+      },
+    },
   }
 );
 

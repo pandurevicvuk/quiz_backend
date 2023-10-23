@@ -6,7 +6,7 @@ import errorMiddleware from "./middleware/error-middleware";
 
 import { Logger } from "./utils/logger";
 import { config } from "./config/config";
-import { sequelize } from "./data/sequelize";
+import { userRouter } from "./routes";
 import { initializeSocket } from "./service/socket-service";
 
 const app = express();
@@ -15,18 +15,12 @@ app.use(cors());
 const server = http.createServer(app);
 initializeSocket(server);
 
-app.use("/", async (req, res, next) => {
-  try {
-    res.status(200).json("SERVER IS UP!");
-  } catch (error) {
-    next(error);
-  }
+app.get("/", async (req, res, next) => {
+  res.status(200).json("SERVER IS UP!");
 });
+app.use("/api/user", userRouter);
 
 app.use(errorMiddleware);
-
 server.listen(config.port, async () => {
-  // await sequelize.sync({ alter: true });
-  Logger.info(`Database synchronized.`);
   Logger.info(`App is listening on port ${config.port}`);
 });
