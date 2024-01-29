@@ -3,7 +3,7 @@ import questionServiceEn from "./question-service-en";
 
 import { log } from "console";
 import { Server } from "socket.io";
-import { ResultScenario } from "../utils/enums";
+import { EventType, ResultScenario } from "../utils/enums";
 import { PlayerDTO, PlayerResultDTO, RoomDTO } from "../dto/game-dto";
 import { differenceInMilliseconds } from "date-fns";
 import {
@@ -61,7 +61,7 @@ export function initializeSocket(server: any) {
         rooms[socket.data.roomName] != null
       ) {
         const room = rooms[socket.data.roomName];
-        opponentSocket.emit("game_end", {
+        opponentSocket.emit(EventType.GAME_END, {
           message: "OPPONENT LEFT",
           ps: room.count < 4 ? 0 : room.redCount,
           os: 0,
@@ -149,7 +149,7 @@ const startGame = async (
   redPlayer.socket.data.opponentSocketId = bluePlayer.socket.id;
   redPlayer.socket.data.userId = redPlayer.id;
   redPlayer.socket.data.opponentId = bluePlayer.id;
-  redPlayer.socket.emit("game_start", {
+  redPlayer.socket.emit(EventType.GAME_START, {
     t: "RED",
     rn: room.name,
     on: bluePlayer.name,
@@ -161,7 +161,7 @@ const startGame = async (
   bluePlayer.socket.data.opponentSocketId = redPlayer.socket.id;
   bluePlayer.socket.data.userId = bluePlayer.id;
   bluePlayer.socket.data.opponentId = redPlayer.id;
-  bluePlayer.socket.emit("game_start", {
+  bluePlayer.socket.emit(EventType.GAME_START, {
     t: "BLUE",
     rn: room.name,
     on: redPlayer.name,
@@ -187,23 +187,23 @@ const endGame = (
   const redCount = rooms[roomName].redCount;
   const blueCount = rooms[roomName].blueCount;
   if (redCount === blueCount) {
-    redPlayer.socket.emit("game_end", {
+    redPlayer.socket.emit(EventType.GAME_END, {
       message: "DRAW",
       ps: redCount,
       os: blueCount,
     });
-    bluePlayer.socket.emit("game_end", {
+    bluePlayer.socket.emit(EventType.GAME_END, {
       message: "DRAW",
       ps: redCount,
       os: blueCount,
     });
   } else {
-    redPlayer.socket.emit("game_end", {
+    redPlayer.socket.emit(EventType.GAME_END, {
       message: redCount > blueCount ? "VICTORY" : "DEFEAT",
       ps: redCount,
       os: blueCount,
     });
-    bluePlayer.socket.emit("game_end", {
+    bluePlayer.socket.emit(EventType.GAME_END, {
       message: blueCount > redCount ? "VICTORY" : "DEFEAT",
       ps: blueCount,
       os: redCount,
@@ -261,11 +261,11 @@ const startRound = async (
   bluePlayer: PlayerDTO
 ) => {
   const question = rooms[roomName].questions.pop();
-  redPlayer.socket.emit("round_question", {
+  redPlayer.socket.emit(EventType.ROUND_START, {
     ...question,
     qc: rooms[roomName].count,
   });
-  bluePlayer.socket.emit("round_question", {
+  bluePlayer.socket.emit(EventType.ROUND_START, {
     ...question,
     qc: rooms[roomName].count,
   });
@@ -384,8 +384,8 @@ const endRound = async (
   rooms[room.name].blueAnswer = null;
 
   //
-  player1.socket.emit("round_result", redPlayer);
-  player2.socket.emit("round_result", bluePlayer);
+  player1.socket.emit(EventType.ROUND_END, redPlayer);
+  player2.socket.emit(EventType.ROUND_END, bluePlayer);
   await new Promise((resolve) => setTimeout(resolve, 5000));
 };
 

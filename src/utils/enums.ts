@@ -10,3 +10,10 @@ export enum ResultScenario {
   RED_INCORRECT_BLUE_NOT_ANSWERED,
   BLUE_INCORRECT_RED_NOT_ANSWERED,
 }
+
+export enum EventType {
+  GAME_START = "GAME_START",
+  GAME_END = "GAME_END",
+  ROUND_START = "ROUND_START",
+  ROUND_END = "ROUND_END",
+}
