@@ -43,10 +43,10 @@ export function initializeSocket(server: any) {
     //
     queue.push(player);
 
-    socket.on("disconnect", (reason) => {
-      log("DISCONNECTED: ", socket.data);
+    socket.on("disconnect", async (reason) => {
       //IN QUEUE
       if (queue.some((player) => player.id === playerId)) {
+        log("IN QUEUE DISCONNECTED: ", socket.data);
         queue = queue.filter((player) => player.id !== playerId);
         return;
       }
@@ -54,20 +54,24 @@ export function initializeSocket(server: any) {
       const opponentSocket = io.sockets.sockets.get(
         socket.data.opponentSocketId
       );
-      //LEFT GAME
+
       if (
         opponentSocket &&
         opponentSocket.connected &&
         rooms[socket.data.roomName] != null
       ) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        log("LEFT GAME: ", socket.data);
         const room = rooms[socket.data.roomName];
         opponentSocket.emit(EventType.GAME_END, {
           message: "OPPONENT LEFT",
           ps: room.count < 4 ? 0 : room.redCount,
           os: 0,
         });
-        // opponentSocket.disconnect(); TODO - Find out why this causes problems to mobile app?
+        //TODO - Find out why this causes problems to mobile app?
         clearTimeout(rooms[socket.data.roomName].timer!);
+        opponentSocket.disconnect();
+        log("DISCONNECTED OPPONENT: ", opponentSocket.data);
         delete rooms[socket.data.roomName];
       }
     });
@@ -123,6 +127,8 @@ const startGame = async (
   redPlayer: PlayerDTO,
   bluePlayer: PlayerDTO
 ): Promise<RoomDTO> => {
+  console.log("START GAME");
+
   const sortedUserIds = [redPlayer.id, bluePlayer.id].sort();
   const roomName = sortedUserIds.join("_");
 
@@ -169,11 +175,11 @@ const startGame = async (
     pn: bluePlayer.name,
     pp: bluePlayer.photo,
   });
-  await new Promise((resolve) => setTimeout(resolve, 8000));
-
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  console.log("START ROUND");
   const question = rooms[room.name].questions.pop();
-  redPlayer.socket.emit("round_question", { ...question, qc: 1 });
-  bluePlayer.socket.emit("round_question", { ...question, qc: 1 });
+  redPlayer.socket.emit(EventType.ROUND_START, { ...question, qc: 1 });
+  bluePlayer.socket.emit(EventType.ROUND_START, { ...question, qc: 1 });
 
   startTimer(room, redPlayer, bluePlayer);
   return room;
@@ -184,6 +190,7 @@ const endGame = (
   redPlayer: PlayerDTO,
   bluePlayer: PlayerDTO
 ) => {
+  console.log("END GAME");
   const redCount = rooms[roomName].redCount;
   const blueCount = rooms[roomName].blueCount;
   if (redCount === blueCount) {
@@ -260,6 +267,7 @@ const startRound = async (
   redPlayer: PlayerDTO,
   bluePlayer: PlayerDTO
 ) => {
+  console.log("START ROUND");
   const question = rooms[roomName].questions.pop();
   redPlayer.socket.emit(EventType.ROUND_START, {
     ...question,
@@ -277,6 +285,7 @@ const endRound = async (
   player1: PlayerDTO,
   player2: PlayerDTO
 ): Promise<void> => {
+  console.log("END ROUND");
   const {
     timer,
     count,
@@ -399,18 +408,23 @@ const startTimer = (
   //
   if (rooms[room.name].timer) clearTimeout(rooms[room.name].timer!); //CLEAR PREVIOUS TIMER
 
-  const timer = setTimeout(async () => {
-    await endRound(rooms[room.name], redPlayer, bluePlayer);
+  try {
+    const timer = setTimeout(async () => {
+      console.log("EXECUTE TIMER");
+      await endRound(rooms[room.name], redPlayer, bluePlayer);
 
-    //
-    if (rooms[room.name].count >= 10)
-      return endGame(room.name, redPlayer, bluePlayer);
-    //
-    await startRound(room.name, redPlayer, bluePlayer);
-  }, 10000);
+      //
+      if (rooms[room.name].count >= 10)
+        return endGame(room.name, redPlayer, bluePlayer);
+      //
+      await startRound(room.name, redPlayer, bluePlayer);
+    }, 10000);
 
-  rooms[room.name].timer = timer;
-  rooms[room.name].initTime = new Date();
+    rooms[room.name].timer = timer;
+    rooms[room.name].initTime = new Date();
+  } catch (error) {
+    console.log("TIMER ERROR: ", error);
+  }
 };
 
 export { getResultScenario };
