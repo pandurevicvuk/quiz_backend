@@ -26,4 +26,19 @@ const userIdScheme = object({
   }),
 });
 
-export { userSignUpScheme, userUpdateScheme, userIdScheme };
+const googleRegisterScheme = object({
+  body: object({
+    firstName: string(),
+    lastName: string(),
+    email: string().required(),
+    token: string().required(),
+    googleId: string().required(),
+  }),
+});
+
+export {
+  userSignUpScheme,
+  userUpdateScheme,
+  userIdScheme,
+  googleRegisterScheme,
+};
