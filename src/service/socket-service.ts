@@ -35,8 +35,8 @@ export function initializeSocket(server: any) {
     const user = await userService.getById(playerId);
     const player: PlayerDTO = {
       id: user.id,
-      name: user.firstName,
-      photo: user.photo || "",
+      name: user.firstName || user.lastName,
+      photo: user.photo,
       socket: socket,
     };
 

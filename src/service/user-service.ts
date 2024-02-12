@@ -13,7 +13,7 @@ const getById = async (userId: number): Promise<User> => {
 };
 
 const createGuest = async (): Promise<User> => {
-  const guestType = await db.UserType.findOne({ where: { type: "GUEST" } });
+  const guestType = await db.UserType.findOne({ where: { type: "PLAYER_EN" } });
 
   const user = await db.User.create({
     active: true,
@@ -35,12 +35,14 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
 
     //ALREADY CREATED
     const alreadyCreatedUser = await db.User.findOne({
-      where: { id: sub },
+      where: { googleId: sub },
     });
     if (alreadyCreatedUser) return alreadyCreatedUser;
 
     //CREATE NEW
-    const playerType = await db.UserType.findOne({ where: { type: "PLAYER" } });
+    const playerType = await db.UserType.findOne({
+      where: { type: "PLAYER_EN" },
+    });
     const user = await db.User.create({
       typeId: playerType!.id,
       active: true,
@@ -53,6 +55,7 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
 
     return user;
   } catch (err: any) {
+    console.log(err);
     throw new HttpException(400, err.response.data);
   }
 };

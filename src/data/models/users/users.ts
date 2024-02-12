@@ -1,10 +1,10 @@
+import { db } from "../../database";
 import { sequelize } from "../../sequelize";
-import { QuestionEN } from "../questions/questions-en";
+import { UserAttributes } from "./users.def";
+import { UserType } from "../user_types/user_types";
+import { Model, DataTypes, Optional } from "sequelize";
 import { QuestionAnsweredEN } from "../questions_answered/questions-answered-en";
 import { QuestionsReportedEN } from "../questions_reported/questions-reported-en";
-import { UserType } from "../user_types/user_types";
-import { UserAttributes } from "./users.def";
-import { Model, DataTypes, Optional } from "sequelize";
 
 export class User
   extends Model<UserAttributes, Optional<UserAttributes, "id">>
@@ -72,6 +72,11 @@ const instance = User.init(
     freezeTableName: true,
     updatedAt: false,
     createdAt: false,
+    hooks: {
+      afterCreate: async (user, options) => {
+        await db.UserStats.create({ id: user.id });
+      },
+    },
     defaultScope: {
       attributes: {
         exclude: ["typeId", "active", "googleId", "email"],

@@ -11,6 +11,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const user = await userService.createGuest();
     res.status(200).json(user);
   } catch (error) {
+    console.log("ERROR: ", error);
     next(error);
   }
 });
