@@ -26,13 +26,19 @@ export function initializeSocket(server: any) {
 
   io.on("connection", async (socket) => {
     var { id } = socket.handshake.query;
+    log(`ID ${id} REQUESTED CONNECTION`);
     if (!id) return socket.disconnect();
 
     const playerId = id as unknown as number;
     if (queue.some((player) => player.id === playerId)) return;
-    log("CONNECTED: ", id);
 
     const user = await userService.getById(playerId);
+    log("USER: ", {
+      id: user.id,
+      name: user.firstName || user.lastName,
+      photo: user.photo,
+    });
+
     const player: PlayerDTO = {
       id: user.id,
       name: user.firstName || user.lastName,
@@ -76,6 +82,7 @@ export function initializeSocket(server: any) {
       }
     });
 
+    log(`QUEUE LENGTH ${queue.length}`);
     if (queue.length < 2) return;
 
     const redPlayer = queue.shift();
