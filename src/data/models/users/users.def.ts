@@ -5,7 +5,6 @@ export interface UserAttributes {
   active: boolean;
   firstName: string;
   lastName: string;
-  username: string;
   email?: string;
   googleId?: string;
   photo?: string;

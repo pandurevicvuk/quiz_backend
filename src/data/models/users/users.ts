@@ -14,7 +14,6 @@ export class User
   public active!: boolean;
   public firstName!: string;
   public lastName!: string;
-  public username!: string;
   public email?: string;
   public googleId?: string;
   public photo?: string;
@@ -38,18 +37,12 @@ const instance = User.init(
     firstName: {
       field: "first_name",
       type: DataTypes.STRING(100),
-      allowNull: false,
+      allowNull: true,
     },
     lastName: {
       field: "last_name",
       type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-    username: {
-      field: "username",
-      type: DataTypes.STRING(),
-      allowNull: false,
-      unique: true,
+      allowNull: true,
     },
     email: {
       field: "email",
