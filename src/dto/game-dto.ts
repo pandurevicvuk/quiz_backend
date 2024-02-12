@@ -5,7 +5,7 @@ import { Socket } from "socket.io";
 export type PlayerDTO = {
   id: number;
   name: string;
-  photo: string;
+  photo: string | null | undefined;
   socket: Socket;
 };
 export type RoomDTO = {

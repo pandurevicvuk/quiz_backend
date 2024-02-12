@@ -28,11 +28,7 @@ const userIdScheme = object({
 
 const googleRegisterScheme = object({
   body: object({
-    firstName: string(),
-    lastName: string(),
-    email: string().required(),
-    token: string().required(),
-    googleId: string().required(),
+    idToken: string().required(),
   }),
 });
 
