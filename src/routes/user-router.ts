@@ -9,7 +9,7 @@ const router = Router();
 router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.createGuest();
-    res.status(200).json(user);
+    res.status(201).json(user);
   } catch (error) {
     console.log("ERROR: ", error);
     next(error);
@@ -33,7 +33,7 @@ router.post(
     try {
       const dto = req.body as unknown as GoogleRegisterDTO;
       const user = await userService.validateGoogleToken(dto);
-      res.status(200).json(user);
+      res.status(201).json(user);
     } catch (error) {
       next(error);
     }

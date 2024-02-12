@@ -21,7 +21,6 @@ const createGuest = async (): Promise<User> => {
     firstName: "guest",
     lastName: "guest",
   });
-  await db.UserStats.create({ id: user.id });
 
   return user;
 };
@@ -43,15 +42,18 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
     const playerType = await db.UserType.findOne({
       where: { type: "PLAYER_EN" },
     });
-    const user = await db.User.create({
-      typeId: playerType!.id,
-      active: true,
-      email: email,
-      googleId: sub,
-      photo: picture,
-      firstName: given_name,
-      lastName: family_name,
-    });
+    const user = await db.User.create(
+      {
+        typeId: playerType!.id,
+        active: true,
+        email: email,
+        googleId: sub,
+        photo: picture,
+        firstName: given_name,
+        lastName: family_name,
+      },
+      { returning: ["id", "firstName", "lastName", "photo"] }
+    );
 
     return user;
   } catch (err: any) {
