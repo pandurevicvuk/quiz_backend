@@ -42,18 +42,15 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
     const playerType = await db.UserType.findOne({
       where: { type: "PLAYER_EN" },
     });
-    const user = await db.User.create(
-      {
-        typeId: playerType!.id,
-        active: true,
-        email: email,
-        googleId: sub,
-        photo: picture,
-        firstName: given_name,
-        lastName: family_name,
-      },
-      { returning: ["id", "firstName", "lastName", "photo"] }
-    );
+    const user = await db.User.create({
+      typeId: playerType!.id,
+      active: true,
+      email: email,
+      googleId: sub,
+      photo: picture,
+      firstName: given_name,
+      lastName: family_name,
+    });
 
     return user;
   } catch (err: any) {
