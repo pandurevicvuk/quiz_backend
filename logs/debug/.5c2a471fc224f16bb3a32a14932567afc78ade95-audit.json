@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\DUPLEX\\Documents\\PROJECTS\\red_blue_back\\logs\\debug\\.5c2a471fc224f16bb3a32a14932567afc78ade95-audit.json",
+    "files": [
+        {
+            "date": 1709294619241,
+            "name": "C:\\Users\\DUPLEX\\Documents\\PROJECTS\\red_blue_back\\logs\\debug\\2024-03-01.log",
+            "hash": "fed62dc26264650d0e7f46788494655a4897fab5552ad3c9dfd78b0f8b242c16"
+        }
+    ],
+    "hashType": "sha256"
+}

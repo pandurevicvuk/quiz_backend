@@ -4,5 +4,4 @@ export interface QuestionAttributes {
   a: string;
   b: string;
   c: string;
-  version: number;
 }

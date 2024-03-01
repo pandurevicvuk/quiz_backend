@@ -1,0 +1,24 @@
+2024-03-01 13:03:41 error: uncaughtException: 6 errors occurred
+ValidationError: 6 errors occurred
+    at C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:768:33
+    at C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:1771:9
+    at nextOnce (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:703:7)
+    at finishTestRun (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:722:11)
+    at C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:670:16
+    at nextOnce (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:703:7)
+    at finishTestRun (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:722:11)
+    at handleResult (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:329:96)
+    at validate (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:352:5)
+    at StringSchema.runTests (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\yup\index.js:717:7)
+2024-03-01 13:03:41 error: uncaughtException: (no error message)
+SequelizeConnectionRefusedError
+    at Client._connectionCallback (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\sequelize\src\dialects\postgres\connection-manager.js:179:24)
+    at Client._handleErrorWhileConnecting (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\pg\lib\client.js:327:19)
+    at Client._handleErrorEvent (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\pg\lib\client.js:337:19)
+    at Connection.emit (node:events:518:28)
+    at Connection.emit (node:domain:488:12)
+    at Socket.reportStreamError (C:\Users\DUPLEX\Documents\PROJECTS\red_blue_back\node_modules\pg\lib\connection.js:58:12)
+    at Socket.emit (node:events:518:28)
+    at Socket.emit (node:domain:488:12)
+    at emitErrorNT (node:internal/streams/destroy:169:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:128:3)
