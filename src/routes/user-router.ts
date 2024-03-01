@@ -6,16 +6,6 @@ import validate from "../middleware/validation-middleware";
 
 const router = Router();
 
-router.post("/", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = await userService.createGuest();
-    res.status(201).json(user);
-  } catch (error) {
-    console.log("ERROR: ", error);
-    next(error);
-  }
-});
-
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as unknown as number;

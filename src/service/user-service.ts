@@ -12,19 +12,6 @@ const getById = async (userId: number): Promise<User> => {
   return user;
 };
 
-const createGuest = async (): Promise<User> => {
-  const guestType = await db.UserType.findOne({ where: { type: "PLAYER_EN" } });
-
-  const user = await db.User.create({
-    active: true,
-    typeId: guestType!.id,
-    firstName: "guest",
-    lastName: "guest",
-  });
-
-  return user;
-};
-
 const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
   try {
     const response = await axios.get(
@@ -39,12 +26,8 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
     if (alreadyCreatedUser) return alreadyCreatedUser;
 
     //CREATE NEW
-    const playerType = await db.UserType.findOne({
-      where: { type: "PLAYER_EN" },
-    });
+
     const user = await db.User.create({
-      typeId: playerType!.id,
-      active: true,
       email: email,
       googleId: sub,
       photo: picture,
@@ -61,6 +44,6 @@ const validateGoogleToken = async (dto: GoogleRegisterDTO): Promise<User> => {
 
 export default {
   getById,
-  createGuest,
+
   validateGoogleToken,
 };

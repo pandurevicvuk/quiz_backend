@@ -1,5 +1,4 @@
 import userService from "./user-service";
-import questionServiceEn from "./question-service-en";
 
 import { log } from "console";
 import { Server } from "socket.io";
@@ -12,6 +11,8 @@ import {
   ServerToClientEvents,
   SocketData,
 } from "../utils/interfaces";
+import { db } from "../data/database";
+import { sequelize } from "../data/sequelize";
 
 var queue: PlayerDTO[] = [];
 var rooms: { [key: string]: RoomDTO } = {};
@@ -139,10 +140,12 @@ const startGame = async (
   const sortedUserIds = [redPlayer.id, bluePlayer.id].sort();
   const roomName = sortedUserIds.join("_");
 
-  const questions = await questionServiceEn.getGameQuestions(
-    redPlayer.id,
-    bluePlayer.id
-  );
+  const questions = await db.QuestionsEn.findAll({
+    attributes: ["q", "a", "b", "c"],
+    order: sequelize.random(),
+    limit: 10,
+    raw: true,
+  });
   const room: RoomDTO = {
     name: [redPlayer.id, bluePlayer.id].sort().join("_"),
     initTime: new Date(),
